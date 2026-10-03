@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111827"/><stop offset="0.55" stop-color="#172554"/><stop offset="1" stop-color="#0f172a"/></linearGradient>
+ <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#22c55e" stop-opacity=".05"/><stop offset=".5" stop-color="#60a5fa" stop-opacity=".32"/><stop offset="1" stop-color="#a78bfa" stop-opacity=".05"/></linearGradient>
+ <filter id="blur"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1200" height="420" rx="34" fill="url(#bg)"/>
+<ellipse cx="760" cy="100" rx="330" ry="130" fill="#60a5fa" opacity=".12" filter="url(#blur)"/>
+<ellipse cx="980" cy="330" rx="260" ry="100" fill="#22c55e" opacity=".08" filter="url(#blur)"/>
+<g opacity=".13" stroke="#cbd5e1" stroke-width="1">
+ <path d="M50 70H1150M50 140H1150M50 210H1150M50 280H1150M50 350H1150"/>
+ <path d="M150 45V375M300 45V375M450 45V375M600 45V375M750 45V375M900 45V375M1050 45V375"/>
+</g>
+<path d="M55 300 C170 290 205 255 295 275 S440 330 520 245 S675 205 760 235 S900 165 1010 185 S1090 150 1145 112" fill="none" stroke="#60a5fa" stroke-width="7" opacity=".9"/>
+<path d="M55 322 C170 312 215 278 300 292 S440 342 520 265 S675 228 760 252 S900 188 1010 207 S1090 170 1145 132" fill="none" stroke="url(#glow)" stroke-width="18" opacity=".65"/>
+<g stroke-linecap="round">
+ <g stroke="#22c55e" fill="#22c55e"><path d="M125 245V310" stroke-width="4"/><rect x="111" y="263" width="28" height="38" rx="5"/></g>
+ <g stroke="#ef4444" fill="#ef4444"><path d="M205 205V280" stroke-width="4"/><rect x="191" y="220" width="28" height="43" rx="5"/></g>
+ <g stroke="#22c55e" fill="#22c55e"><path d="M285 230V315" stroke-width="4"/><rect x="271" y="245" width="28" height="52" rx="5"/></g>
+ <g stroke="#22c55e" fill="#22c55e"><path d="M365 175V260" stroke-width="4"/><rect x="351" y="190" width="28" height="52" rx="5"/></g>
+ <g stroke="#ef4444" fill="#ef4444"><path d="M445 195V290" stroke-width="4"/><rect x="431" y="215" width="28" height="42" rx="5"/></g>
+ <g stroke="#22c55e" fill="#22c55e"><path d="M525 155V255" stroke-width="4"/><rect x="511" y="175" width="28" height="58" rx="5"/></g>
+ <g stroke="#22c55e" fill="#22c55e"><path d="M605 125V225" stroke-width="4"/><rect x="591" y="145" width="28" height="58" rx="5"/></g>
+ <g stroke="#ef4444" fill="#ef4444"><path d="M685 150V250" stroke-width="4"/><rect x="671" y="168" width="28" height="58" rx="5"/></g>
+ <g stroke="#22c55e" fill="#22c55e"><path d="M765 105V205" stroke-width="4"/><rect x="751" y="125" width="28" height="58" rx="5"/></g>
+ <g stroke="#22c55e" fill="#22c55e"><path d="M845 90V185" stroke-width="4"/><rect x="831" y="108" width="28" height="55" rx="5"/></g>
+ <g stroke="#ef4444" fill="#ef4444"><path d="M925 110V205" stroke-width="4"/><rect x="911" y="130" width="28" height="48" rx="5"/></g>
+ <g stroke="#22c55e" fill="#22c55e"><path d="M1005 75V170" stroke-width="4"/><rect x="991" y="92" width="28" height="56" rx="5"/></g>
+</g>
+<rect x="55" y="45" width="290" height="62" rx="20" fill="#ffffff" opacity=".08" stroke="#ffffff" stroke-opacity=".12"/>
+<text x="82" y="73" fill="#e2e8f0" font-family="Arial,sans-serif" font-size="18" font-weight="700">NSE LIVE MARKET</text>
+<text x="82" y="94" fill="#94a3b8" font-family="Arial,sans-serif" font-size="13">Angel One • NSE MCP • AI validated</text>
+<circle cx="1110" cy="77" r="9" fill="#22c55e"/><circle cx="1110" cy="77" r="17" fill="none" stroke="#22c55e" stroke-opacity=".25" stroke-width="3"/>
+</svg>

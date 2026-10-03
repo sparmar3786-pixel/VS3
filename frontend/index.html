@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nse-ai-terminal</title><link rel="stylesheet" href="styles.css">
+<script src="https://js.puter.com/v2/"></script>
+</head>
+<body>
+<header class="topbar">
+<span class="brand">nse-ai-terminal</span><span id="conn" class="pill bad">disconnected</span>
+<span id="src" class="pill">source: ?</span><span id="adv" class="pill">advanced: ?</span>
+<span id="verdict" class="pill big">WAIT</span><span id="demo" class="pill warn" style="display:none">DEMO DATA</span>
+</header>
+<nav class="tabs" id="tabs">
+<button data-tab="chain" class="active">Live Chain</button><button data-tab="heatmap">OI Heatmap</button>
+<button data-tab="premvol">Premium/Volume</button><button data-tab="greeks">Greeks/IV Surface</button>
+<button data-tab="flow">Order Flow</button><button data-tab="regime">Regime</button>
+<button data-tab="plans">Trade Plans (5+)</button><button data-tab="backtest">Backtest</button>
+<button data-tab="registry">Strategy Registry</button><button data-tab="ai">AI 6-Layer</button><button data-tab="logs">Logs/Settings</button>
+</nav>
+<main>
+<section id="tab-chain" class="tab active"><div class="row"><select id="chainIndex"></select><span id="chainMeta" class="muted"></span></div><table id="chainTable" class="grid"></table></section>
+<section id="tab-heatmap" class="tab"><canvas id="heatmap" width="1000" height="420"></canvas><p class="muted">CE OI vs PE OI by strike. Change-in-OI shown as bars.</p></section>
+<section id="tab-premvol" class="tab"><canvas id="premvol" width="1000" height="360"></canvas><div id="premvolText" class="muted"></div></section>
+<section id="tab-greeks" class="tab"><canvas id="ivsurface" width="1000" height="360"></canvas><div id="greeksText" class="muted"></div></section>
+<section id="tab-flow" class="tab"><div id="flowText" class="muted"></div></section>
+<section id="tab-regime" class="tab"><div id="regimeText" class="muted"></div></section>
+<section id="tab-plans" class="tab"><div id="planStatus" class="muted"></div><table id="plansTable" class="grid"></table></section>
+<section id="tab-backtest" class="tab"><div id="backtestText" class="muted">Run a scan to populate the backtest view.</div></section>
+<section id="tab-registry" class="tab"><div class="row"><input id="regSearch" placeholder="search 377 modules (name / id / family)"><span id="regCount" class="muted"></span></div><ul id="regList" class="registry"></ul></section>
+<section id="tab-ai" class="tab"><div class="row"><button id="aiRun">Run 6-Layer AI (Puter.js, zero-key)</button><span id="aiStatus" class="muted"></span></div><div id="aiLayers" class="ailayers"></div></section>
+<section id="tab-logs" class="tab"><h3>Settings (read-only surface)</h3><pre id="settingsBox" class="log"></pre><h3>Live log</h3><pre id="logBox" class="log"></pre></section>
+</main>
+<footer class="legal">Personal research tooling — NOT investment advice. Paper-first. Market data may be exchange-licensed. confidence ≠ probability ≠ win rate. Live orders are off by default.</footer>
+<script src="app.js"></script><script src="puter-ai.js"></script>
+</body></html>

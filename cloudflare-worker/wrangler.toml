@@ -1,0 +1,14 @@
+name = "vandana2-edge"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Set this to the HTTPS DNS name backed by the Oracle Cloud VM.
+BACKEND_ORIGIN = "https://REPLACE_WITH_ORACLE_API_DOMAIN"
+
+[assets]
+directory = "../frontend"
+binding = "ASSETS"
+
+[observability]
+enabled = true

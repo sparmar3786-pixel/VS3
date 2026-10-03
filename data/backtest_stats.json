@@ -1,0 +1,5 @@
+{
+  "_schema": "council-backtest-stats-v1",
+  "_note": "Empty baseline. Populate only from deterministic out-of-sample backtests. No fabricated win rates.",
+  "_updated_at": null
+}

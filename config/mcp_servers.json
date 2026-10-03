@@ -1,0 +1,22 @@
+{
+  "servers": [
+    {
+      "name": "nse-local",
+      "enabled": true,
+      "transport": "stdio",
+      "command": "python",
+      "args": ["-m", "backend.mcp.nse_mcp_server", "--transport", "stdio"],
+      "timeout_sec": 20
+    },
+    {
+      "name": "nse-live",
+      "enabled": true,
+      "transport": "sse",
+      "url": "${NSE_MCP_URL}",
+      "timeout_sec": 20
+    }
+  ],
+  "live_order": ["nse-live"],
+  "fallback_order": ["nse-live", "nse-local"],
+  "note": "Live terminal tries the configured NSE MCP SSE bridge first, then direct NSE when NSE_VIA=mcp,direct."
+}

@@ -1,0 +1,1 @@
+# VS3 — Consolidated NSE AI Terminal\n\nNative Android Kotlin APK shell + Python/FastAPI trading-analysis backend + web terminal.\n\nThe active source is consolidated from the project family repositories without retaining duplicate active implementations.\n

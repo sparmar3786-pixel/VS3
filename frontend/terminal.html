@@ -1,0 +1,232 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>NSE AI Terminal (live)</title>
+<style>
+:root{--bg:#f3f6fc;--cd:#fff;--tx:#0f172a;--mu:#64748b;--bd:#e2e8f0;--ac:#2563eb;--up:#16a34a;--dn:#dc2626;--wn:#d97706;--hi:#eaf1ff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0a1020;--cd:#121a2e;--tx:#e6ecf8;--mu:#8fa0bd;--bd:#223049;--ac:#4f8cff;--up:#34d399;--dn:#f87171;--wn:#fbbf24;--hi:#172444}}
+:root[data-theme=dark]{--bg:#0a1020;--cd:#121a2e;--tx:#e6ecf8;--mu:#8fa0bd;--bd:#223049;--ac:#4f8cff;--up:#34d399;--dn:#f87171;--wn:#fbbf24;--hi:#172444}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--cd);border-bottom:1px solid var(--bd)}
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px}.top b{font-size:16px}.sp{flex:1}.tag{font-size:11px;color:var(--mu)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:thin}
+.tabs button{flex:none;border:1px solid var(--bd);background:var(--bg);color:var(--mu);border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer}
+.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+main{max-width:1100px;margin:0 auto;padding:14px}
+h2{margin:0 0 4px;font-size:20px}.mu{color:var(--mu)}
+.g{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:12px 0}
+.c{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:12px 0}.g .c{margin:0}
+.k{font-size:11px;color:var(--mu)}.v{font-size:20px;font-weight:650}
+.up{color:var(--up)}.dn{color:var(--dn)}.wn{color:var(--wn)}
+.w{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}th:first-child,td:first-child{text-align:left}th{color:var(--mu);font-weight:500;font-size:12px}
+tr.hl td{background:var(--hi)}
+button,input,textarea,select{font:inherit}
+button.p,.hero button,.narrow button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:600}
+button.ghost{background:transparent!important;color:var(--ac)!important;border:1px solid var(--ac)!important}
+input,textarea,select{width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin:5px 0}
+.hero,.narrow{max-width:380px;margin:20px auto;text-align:center;display:grid;gap:10px}.logo{font-size:44px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;background:var(--hi);color:var(--ac)}
+.ok{color:var(--up)}.bad{color:var(--dn)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd)}.row:last-child{border:0}
+svg{max-width:100%;height:auto;display:block}
+.demo{font-size:12px;background:var(--hi);color:var(--mu);padding:7px 12px;border-radius:10px;margin-bottom:10px}
+.nav{display:flex;justify-content:space-between;margin-top:14px}
+.L{border-left:3px solid var(--ac);padding-left:10px;margin:10px 0}
+.chip{display:inline-block;margin:3px 4px 3px 0;padding:5px 11px;border:1px solid var(--bd);border-radius:999px;background:var(--bg);color:var(--mu);cursor:pointer;font-size:12px}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.tb{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.tb button,.tb select,.tb input{width:auto;margin:0;padding:6px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);cursor:pointer;font-size:12px}
+.tb button.on,.tb button.p{background:var(--ac);color:#fff}
+#cw{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:6px}
+#cv{width:100%;height:58vh;min-height:300px;display:block;touch-action:none}
+#cw:fullscreen,#cw.fsx{display:flex;flex-direction:column;border-radius:0}#cw:fullscreen #cv,#cw.fsx #cv{flex:1;height:auto}
+#cw.fsx{position:fixed;inset:0;z-index:20}
+@media(orientation:landscape) and (max-height:520px){#cv{height:74vh}}
+</style></head><body>
+<header><div class="top"><b>📈 NSE-AI-TERMINAL</b><span class="tag">42 Points · 377 Strategies · 6-Layer AI</span><span class="sp"></span><button class="tabs-btn" id="th" style="border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:8px;padding:5px 10px;cursor:pointer">◐ Theme</button></div><div class="tabs" id="tabs"></div></header>
+<main id="m"></main>
+<script>
+const $=s=>document.querySelector(s),f=(n,d=2)=>Number(n).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+let sd=11;const rnd=()=>(sd=(sd*9301+49297)%233280)/233280;
+const IDX=[['NIFTY 50',24689.75,.51],['BANK NIFTY',52317.2,.6],['FINNIFTY',23482.1,.41],['MIDCPNIFTY',12345.6,.36],['SENSEX',81742.2,.48],['BANKEX',56210.75,.52]];
+const cl=n=>n>=0?'up':'dn',sg=n=>(n>=0?'+':'')+f(n);
+const kp=a=>`<div class=g>${a.map(([k,v,c])=>`<div class=c><div class=k>${k}</div><div class="v ${c||''}">${v}</div></div>`).join('')}</div>`;
+const tb=(h,r,hl=-1)=>`<div class=w><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map((x,i)=>`<tr class="${i==hl?'hl':''}">${x.map(y=>`<td>${y}</td>`).join('')}</tr>`).join('')}</table></div>`;
+const cd=(t,b)=>`<div class=c>${t?`<div class=k style="margin-bottom:6px">${t}</div>`:''}${b}</div>`;
+const rows=a=>a.map(([k,v,c])=>`<div class=row><span>${k}</span><b class="${c||''}">${v}</b></div>`).join('');
+const walk=(n,s=1)=>{let x=100,o=[];for(let i=0;i<n;i++){x+=(rnd()-.45)*3*s;o.push(x)}return o};
+const line=(a,c='var(--ac)')=>{const mn=Math.min(...a),mx=Math.max(...a),p=a.map((y,i)=>`${i/(a.length-1)*600},${150-(y-mn)/(mx-mn||1)*140}`).join(' ');return `<svg viewBox="0 0 600 150" preserveAspectRatio="none"><polyline points="${p}" fill="none" stroke="${c}" stroke-width="2.5"/></svg>`};
+const bars=(a,c)=>{const m=Math.max(...a.map(Math.abs));const w=600/a.length;return `<svg viewBox="0 0 600 150">${a.map((v,i)=>`<rect x="${i*w+2}" y="${75-(v>0?v/m*70:0)}" width="${w-4}" height="${Math.abs(v)/m*70}" rx="2" fill="${c?c[i%c.length]:v>=0?'var(--up)':'var(--dn)'}"/>`).join('')}</svg>`};
+const candles=()=>{let x=100,o='';for(let i=0;i<40;i++){const a=x,b=x+(rnd()-.47)*4,h=Math.max(a,b)+rnd()*2,l=Math.min(a,b)-rnd()*2;x=b;const u=b>=a,col=u?'var(--up)':'var(--dn)',X=i*15+6,Y=v=>200-(v-92)*7;o+=`<line x1="${X+4}" x2="${X+4}" y1="${Y(h)}" y2="${Y(l)}" stroke="${col}"/><rect x="${X}" y="${Y(Math.max(a,b))}" width="8" height="${Math.max(2,Math.abs(Y(a)-Y(b)))}" fill="${col}"/>`}return `<svg viewBox="0 0 600 210">${o}</svg>`};
+const FAM=['OI Wall','Short Covering','Long Buildup','Short Buildup','Straddle','Strangle','Iron Condor','Breakout','Gamma Scalp','VWAP Revert','IV Crush','Trend Follow','Range Fade','Delta Hedge'];
+const VAR=['Break','Reversal','Confirm','Fade','Expansion','Squeeze','Momentum','Mean Revert','Spike','Drift'];
+let STR=[];for(let i=0;i<377;i++)STR.push({id:'S'+String(i+1).padStart(3,'0'),n:FAM[i%14]+' '+VAR[(i*7+3)%10],f:FAM[i%14],wr:(52+(i*13)%20+(i%7)/10).toFixed(1),rr:(1.5+(i%9)/10).toFixed(1)});
+let UP=[],HIST=[],SEL=STR[17],LAST=null,BUSY=false;
+const ST=[
+['Splash','Launch',()=>`<div class=hero><div class=logo>📈</div><h1>NSE-AI-TERMINAL</h1><p class=mu>Smart Analysis • Disciplined Execution • AI Powered</p><button onclick="go(2)">Get Started</button><small class=mu>Paper / Demo Mode · Live Orders Off</small></div>`],
+['Login','Launch',()=>`<div class=narrow><h2>Login</h2><input placeholder="Angel One Client ID"><input type=password placeholder="PIN (4 digits)"><input placeholder="TOTP (6 digits)"><button onclick="go(3)">Login</button><button class=ghost onclick="go(3)">Use Demo Mode</button><small class=mu>Real login belongs on your backend. This page stores nothing.</small></div>`],
+['Dashboard','Home',()=>kp(IDX.slice(0,3).map(([n,p,c])=>[n,f(p),cl(c)]))+cd("Today's Signal",`<div class=v>CALL BUY <span class=pill>Confidence 72%</span></div><div class=mu>NIFTY 50 · 24,700 CE · confidence is not a win probability</div>`)+cd('NIFTY intraday',line(walk(60)))],
+['Market Overview','Home',()=>cd('',tb(['Index','LTP','Change %'],IDX.map(([n,p,c])=>[n,f(p),`<span class=${cl(c)}>${sg(c)}%</span>`])))],
+['Option Chain','Market',()=>{let r=[];for(let k=24400;k<=25000;k+=100)r.push([f(k,0),f(40+Math.abs(24700-k)*.25+rnd()*20),f(30+rnd()*50)+'L',sg(rnd()*14-3)+'%',f(10+rnd()*40)+'L']);return cd('NIFTY 50 · 24,689.75',tb(['Strike','LTP','OI','Chg %','Vol'],r,4))}],
+['OI Heatmap','Market',()=>cd('CE vs PE open interest (green PE, red CE)',bars([40,55,70,90,60,45,30,52,68,85,50,35].map((v,i)=>i%2?v:-v)))],
+['Premium / Volume','Market',()=>cd('CE–PE premium spread',line(walk(50)))+cd('Volume',bars(walk(30).map(v=>v-95)))],
+['Greeks / IV','Market',()=>kp([['Delta','0.52'],['Gamma','0.0021'],['Theta','−12.4','dn'],['Vega','8.6'],['ATM IV','14.2%'],['IV Rank','62%']])+cd('IV surface (smile)',line(walk(30,2),'var(--wn)'))],
+['Order Flow','Analysis',()=>kp([['Net Flow','+12.4K','up'],['Buy Ratio','68%','up'],['Large Lots','23%']])+cd('Buy / sell pressure',bars(walk(30).map(v=>v-98)))],
+['Regime','Analysis',()=>cd('Market regime',rows([['State','Bullish','up'],['Trend','Uptrend','up'],['Volatility','Low'],['Momentum','Positive','up'],['Mode','Expansion']]))],
+['Trade Plans','Plans',()=>{const p=[['CALL',24700,102.3,94.5,112.4,124.1],['CALL',24800,81.2,74,96.8,112.5],['PUT',24600,96.4,110.2,87.6,72.3],['CALL',24900,63.1,58,71.2,82.5],['PUT',24500,76.8,67.5,88.4,102.6]];return cd('Qualifying plans (min R:R 1.8 gate)',tb(['Side','Strike','Entry','SL','T1','T2','R:R'],p.map(x=>{const rr=Math.abs(x[5]-x[2])/Math.abs(x[2]-x[3]);return [`<b class=${x[0]=='CALL'?'up':'dn'}>${x[0]}</b>`,x[1],x[2],x[3],x[4],x[5],`<span class=${rr>=1.8?'up':'wn'}>1:${rr.toFixed(1)}${rr<1.8?' ✗':''}</span>`]})))+'<small class=mu>Plans below the R:R gate are rejected, never padded. Demo numbers.</small>'}],
+['Backtest','Plans',()=>kp([['Win Rate','62.4%','up'],['Avg R','1.8'],['Max DD','12.3%','dn']])+cd('Equity curve',line(walk(80).map((v,i)=>v+i*.4),'var(--up)'))],
+['Strategy Registry','Strategies',()=>`<input id=q placeholder="Search ${STR.length+UP.length} strategies…" oninput="reg()"><div id=rg></div>`],
+['AI 6-Layer Panel','AI',()=>aiUI()],
+['Logs / Settings','System',()=>cd('System settings',rows([['Data source','Demo'],['AI enabled','ON','up'],['Live orders','OFF','dn'],['Human confirm','ON','up']]))+cd('Logs',`<pre class=mu style="margin:0;white-space:pre-wrap">10:24 Data quality OK\n10:18 Snapshot refreshed\n09:52 Regime: Bullish\n09:15 Engine started (paper)</pre>`)],
+['Portfolio','Plans',()=>kp([['Total P&L','+3,186 (+2.3%)','up']])+cd('',tb(['Symbol','Qty','LTP','P&L %'],[['NIFTY 50',75,'24,690','<span class=up>+2.3%</span>'],['BANK NIFTY',50,'52,310','<span class=up>+1.8%</span>'],['FINNIFTY',50,'23,482','<span class=up>+1.2%</span>']]))],
+['Charts','Analysis',()=>cd('NIFTY 50 · 5m (demo)',candles())],
+['Strategy Details','Strategies',()=>cd(SEL.id+' · '+SEL.n,rows([['Family',SEL.f],['Win rate',SEL.wr+'%','up'],['Avg R:R','1:'+SEL.rr],['Parameters','strike range, OI threshold, volume spike']])+`<button class=p onclick="go(14,'${SEL.n}')" style="margin-top:10px">Ask 6-layer AI about this</button>`)],
+['Risk Management','Plans',()=>cd('Risk gate',rows([['Max risk / trade','1.0%'],['Max total risk','5.0%'],['SL type','ATR based'],['Position sizing','Kelly (adj.)'],['Status','Within limits','up']]))],
+['Alerts','System',()=>cd('',rows([['10:24 · Signal: CALL BUY NIFTY','High','up'],['10:18 · Data quality OK','Info'],['09:52 · Regime changed','Info'],['09:41 · Risk limit check','OK','up']]))],
+['Help / Education','System',()=>cd('Quick guide',rows([['How to read Option Chain','→'],['OI classification (4 types)','→'],['Strategy families (377)','→'],['Risk management','→'],['AI validation guide','→']]))],
+['Watchlist','Market',()=>cd('',tb(['Symbol','LTP','Trend'],IDX.map(([n,p])=>[n,f(p),`<div style="width:90px;margin-left:auto">${line(walk(14))}</div>`])))],
+['Index Compare','Market',()=>cd('Change % by index',bars(IDX.map(x=>x[2]),['var(--ac)']))+tb(['Index','%'],IDX.map(x=>[x[0],sg(x[2])+'%']))],
+['Signal History','Plans',()=>cd('',tb(['Time','Index','Verdict','Conf.'],[['10:24','NIFTY','CALL BUY','72%'],['09:50','BANKNIFTY','WAIT','—'],['09:30','FINNIFTY','NO QUALIFYING TRADE','—'],['09:15','NIFTY','WAIT','—']]))],
+['Data Quality','System',()=>cd('Quality gates (missing/stale ⇒ DATA_GAP, NO SIGNAL)',rows([['Tick age ≤ 5s','PASS','ok'],['Snapshot age ≤ 10s','PASS','ok'],['Tick jump ≤ 5%','PASS','ok'],['Duplicates','NONE','ok'],['Completeness','100%','ok']]))],
+['Data Sources','System',()=>cd('Fallback order',rows([['1 Angel One SmartAPI','Needs backend','wn'],['2 MCP bridge','Needs backend','wn'],['3 NSE public','Needs backend','wn'],['4 Demo','ACTIVE','ok']]))+cd('Live data',`<p class=mu style="margin:0">A hosted page cannot call NSE or Angel One directly (blocked by browser security, and it would expose keys). Run your FastAPI backend from the Vandana2 repo and let it serve <code>/api/snapshot</code>, <code>/ws</code> to the UI. All figures here are demo data.</p>`)],
+['Strategy Upload','Strategies',()=>cd('Upload strategy files (CSV / JSON / TXT / MD)',`<input type=file id=fi multiple accept=".csv,.json,.txt,.md" onchange="upl(this)"><div id=ul>${ulist()}</div><small class=mu>Files are read in your browser only and shared with the AI as context when you ask a question.</small>`)],
+['AI Research Chat','AI',()=>cd('History',HIST.length?HIST.map(h=>`<div class=L><b>${esc(h.q)}</b><div><span class=pill>${h.r.final}</span> ${esc(h.r.reason)}</div></div>`).join(''):'<span class=mu>No questions yet — ask on screen 14.</span>')+'<button class=p onclick="go(14)">Ask a question</button>'],
+['MCP Bridge','System',()=>cd('Tools',rows([['nse_option_chain','Backend','wn'],['nse_quote','Backend','wn'],['strategy_search','Ready','ok'],['web_search','Backend','wn']]))],
+['Paper Orders','Plans',()=>cd('Paper orders',tb(['Time','Side','Strike','Qty','Status'],[['10:25','CALL','24700','75','Filled (paper)'],['09:58','PUT','24600','75','Closed']]))+cd('',rows([['Live orders','OFF','dn'],['Human confirm','Required','ok']]))]
+];
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function ulist(){return UP.length?UP.map(u=>`<div class=row><span>${esc(u.name)}</span><span class=mu>${u.size} chars</span></div>`).join(''):'<p class=mu>No files yet.</p>'}
+function upl(el){[...el.files].forEach(fl=>{const r=new FileReader();r.onload=()=>{UP.push({name:fl.name,size:r.result.length,text:r.result.slice(0,2500)});$('#ul').innerHTML=ulist()};r.readAsText(fl)})}
+function reg(){const q=($('#q').value||'').toLowerCase();const a=STR.filter(s=>(s.id+s.n).toLowerCase().includes(q)).slice(0,40);$('#rg').innerHTML=cd('',tb(['ID','Strategy','Win %','R:R'],a.map(s=>[s.id,`<a href="#" onclick="pick('${s.id}');return false" style="color:var(--ac)">${s.n}</a>`,s.wr,s.rr])))}
+function pick(id){SEL=STR.find(s=>s.id==id);go(18)}
+function aiUI(){return `<div class=demo>Layers are 6 reasoning roles run by Claude on the demo snapshot${UP.length?' + '+UP.length+' uploaded file(s)':''}. No live internet or NSE feed here.</div><textarea id=aq rows=3 placeholder="Ask about any strategy, e.g. Is OI Wall Break valid in a low-vol bullish regime?">${esc(window.PQ||'')}</textarea><button class=p id=ab onclick="ask()">${BUSY?'Thinking…':'Ask 6 layers'}</button><div id=ar>${LAST?res(LAST):''}</div>`}
+function res(r){return r.layers.map(l=>`<div class=L><b>${l.id} · ${esc(l.role)}</b> <span class="pill">${esc(l.vote)}</span><div>${esc(l.view)}</div></div>`).join('')+cd('Final recommendation',`<div class=v>${esc(r.final)}</div><div class=mu>${esc(r.reason)}</div>`)}
+async function ask(){const q=$('#aq').value.trim();if(!q||BUSY)return;const s=await claude.use('sample');if(!s){$('#ar').innerHTML='<p class=bad>AI is unavailable in this view.</p>';return}
+BUSY=true;$('#ab').textContent='Thinking…';
+const ctx=`Demo snapshot: ${IDX.map(i=>i[0]+' '+i[1]+' ('+i[2]+'%)').join('; ')}. Regime: Bullish, low vol, ATM IV 14.2%. Strategy catalogue: ${STR.length} items (families: ${FAM.join(', ')}). Uploaded strategy files: ${UP.map(u=>u.name+':\n'+u.text).join('\n---\n')||'none'}.`;
+try{const r=await s.json(`You are a 6-layer validation board for an NSE index-options research terminal. Roles: L1 Data Validator, L2 Strategy Matcher, L3 Risk Officer, L4 Regime Analyst, L5 Contrarian, L6 Final Arbiter. Rules: confidence is not a win probability; never invent strikes, entries, SL or targets; if data is missing say DATA_GAP; this is research, not financial advice; you have no live market data. Context: ${ctx}\nQuestion: ${q}\nReturn ONLY JSON: {"layers":[{"id":"L1","role":"...","view":"1-2 sentences","vote":"Agrees|Disagrees|Neutral"}, ...6 items],"final":"CALL BUY|PUT BUY|WAIT|NO QUALIFYING TRADE","reason":"1-2 sentences"}`,{cache:false});LAST=r;HIST.unshift({q,r})}catch(e){LAST=null;$('#ar').innerHTML='<p class=bad>AI error: '+esc(e.message||e.code||'failed')+'</p>'}
+BUSY=false;if(cur==14)render()}
+let cur=1;
+function go(n,q){cur=n;if(q!==undefined)window.PQ='Explain and validate strategy: '+q;location.hash=n;render()}
+function render(){document.querySelectorAll('.tabs button').forEach((b,i)=>b.classList.toggle('on',i+1==cur));const [t,g,fn]=ST[cur-1];
+$('#m').innerHTML=`<h2>${cur}. ${t}</h2><div class=mu style="margin-bottom:8px">${g}</div>${LIVE&&LIVE_SCREENS.has(cur)?'':'<div class=demo>Demo data — not live market data.</div>'}${fn()}<div class=nav><button class="ghost" style="border-radius:10px;padding:8px 14px;cursor:pointer" onclick="go(Math.max(1,cur-1))">← Prev</button><button class="p" onclick="go(Math.min(30,cur+1))">Next →</button></div>`;
+if(cur==13)reg();window.PQ='';const t0=document.querySelector('.tabs button.on');t0&&t0.scrollIntoView({inline:'center',block:'nearest'});scrollTo(0,0)}
+$('#tabs').innerHTML=ST.map((s,i)=>`<button onclick="go(${i+1})">${i+1}. ${s[0]}</button>`).join('');
+$('#th').onclick=()=>{const d=document.documentElement,dark=getComputedStyle(d).getPropertyValue('--bg').trim()=='#0a1020';d.dataset.theme=dark?'light':'dark'};
+</script><script>
+/* ===== LIVE LAYER: backend-connected screens (demo fallback when no backend) ===== */
+const LS={g(k){try{return localStorage.getItem(k)}catch(e){return null}},s(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let LIVE=false,OC={t:0,sym:'NIFTY'},HM='NIFTY',HMM=0,PV='NIFTY',FNO=[];
+const LIVE_SCREENS=new Set([2,3,4,5,6,7,14,17,26,28]),I6=['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY','SENSEX','BANKEX'],dpr=window.devicePixelRatio||1;
+const key=()=>LS.g('tk')||'';
+async function api(p,o={}){const r=await fetch('/api/live'+p,{...o,headers:{'X-API-Key':key(),'Content-Type':'application/json'}});if(!r.ok){let m='HTTP '+r.status;try{const d=(await r.json()).detail;m=typeof d=='string'?d:JSON.stringify(d)}catch(e){}throw new Error(m)}return r}
+const J=async(p,o)=>(await api(p,o)).json();
+const lz=fn=>{const id='z'+Math.random().toString(36).slice(2,8),c=cur;setTimeout(async()=>{let h;try{h=await fn()}catch(e){h=`<p class=bad>${esc(e.message)}</p>`}const el=document.getElementById(id);if(el&&cur==c)el.innerHTML=h},0);return `<div id=${id} class=mu>Loading…</div>`};
+const lv=(i,live)=>{const d=ST[i][2];ST[i][2]=()=>LIVE?live():d()};
+const chips=(a,on,fn)=>a.map(s=>`<span class="chip ${s==on?'on':''}" data-s="${esc(s)}" onclick="${fn}('${esc(s)}')">${esc(s)}</span>`).join('');
+const L=n=>n==null?'–':Math.abs(n)>=1e5?(n/1e5).toFixed(1)+'L':f(n,0);
+const err=(id,e)=>{const x=document.getElementById(id);if(x)x.innerHTML=`<p class=bad>${esc(e.message)}</p>`};
+const setOn=s=>document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('on',b.dataset.s==s));
+const nearATM=(c,n)=>{const s=(c.strikes||[]).filter(x=>x.strike!=null);if(!s.length)return[];let k=0,b=1e18;s.forEach((x,i)=>{const d=Math.abs(x.strike-(c.spot||0));if(d<b){b=d;k=i}});return s.slice(Math.max(0,k-n),k+n+1)};
+const consTbl=(c,fn)=>`<div class=c><div class=k>${esc(c.index)} · ${c.count} companies · via ${esc(c.via||c.source||'')}</div><div class=w><table><tr><th>Symbol</th><th>LTP</th><th>Chg %</th><th>Vol</th><th></th></tr>${(c.stocks||[]).map(s=>`<tr><td><a href="#" style="color:var(--ac)" onclick="${fn}('${esc(s.symbol)}');return false">${esc(s.symbol)}</a></td><td>${s.ltp??'–'}</td><td class="${cl(s.pct||0)}">${s.pct??'–'}</td><td>${s.vol?L(s.vol):'–'}</td><td><a href="#" onclick="openChart('${esc(s.symbol)}');return false">📈</a></td></tr>`).join('')}</table></div></div>`;
+function chainTbl(c){const st=nearATM(c,15),stp=st[1]?st[1].strike-st[0].strike:50;return `<div class=c><b>${f(c.spot||0)}</b> <span class=mu>expiry ${esc(c.expiry||'-')} · PCR ${c.pcr??'–'} · via ${esc(c.via||c.source||'')}</span><div class=tb>${(c.expiries||[]).slice(0,6).map(e=>`<button class="${e==c.expiry?'on':''}" onclick="pickOC(OC.sym,'${esc(e)}')">${esc(e)}</button>`).join('')}</div>${tb(['CE OI','CE Chg','CE LTP','Strike','PE LTP','PE Chg','PE OI'],st.map(x=>[L(x.ce&&x.ce.oi),L(x.ce&&x.ce.oiChg),x.ce?x.ce.ltp:'–',`<b>${x.strike}</b>`,x.pe?x.pe.ltp:'–',L(x.pe&&x.pe.oiChg),L(x.pe&&x.pe.oi)]),st.findIndex(x=>Math.abs(x.strike-(c.spot||0))<=stp/2))}</div>`}
+/* --- 2 Login: Angel One token flow --- */
+const tokView=async()=>{const t=await J('/angel/token');return t.connected?`<p class=up>● Connected · token …${esc(t.jwt_tail)} · expires ${esc(t.expires_at||'?')} · refresh ${t.has_refresh?'✓':'✗'} · feed ${t.has_feed?'✓':'✗'}</p>`:'<p class=wn>Not logged in to Angel One</p>'};
+async function doLogin(){LS.s('tk',$('#lk').value.trim());try{await J('/angel/login',{method:'POST',body:JSON.stringify({client_id:$('#lc').value||null,pin:$('#lp').value||null,totp:$('#lt').value||null})});render()}catch(e){err('lm',e)}}
+async function doRefresh(){LS.s('tk',$('#lk').value.trim());try{await J('/angel/refresh',{method:'POST'});render()}catch(e){err('lm',e)}}
+function saveTerminalKey(){const v=$('#lk').value.trim();LS.s('tk',v);const m=$('#ks');if(m)m.textContent=v?'API key saved on this device for this terminal':'API key cleared';}
+function toggleTerminalKey(){const x=$('#lk');x.type=x.type==='password'?'text':'password';$('#kt').textContent=x.type==='password'?'Show':'Hide';}
+ST[1][2]=()=>`<div class=narrow><h2>Angel One Login</h2><label style="text-align:left;font-size:12px;color:var(--mu)">Terminal API Key</label><div style="display:flex;gap:6px;align-items:center"><input id=lk type=password placeholder="Enter Terminal API Key" value="${esc(key())}" autocomplete="off" style="margin:0"><button id=kt class=ghost type=button onclick="toggleTerminalKey()" style="white-space:nowrap;padding:10px 12px">Show</button></div><button class=ghost type="button" onclick="saveTerminalKey()">Save / Update API Key</button><div id=ks class=mu>${key()?'API key loaded — you can edit it above':'No API key saved'}</div><input id=lc placeholder="Client ID (blank = server env)" autocomplete="off"><input id=lp type=password placeholder="PIN (blank = server env)" autocomplete="off"><input id=lt inputmode=numeric placeholder="TOTP 6 digits (blank = server secret)" autocomplete="one-time-code"><button onclick="doLogin()">Login → get access token</button><button class=ghost onclick="doRefresh()">Refresh token</button><div id=lm>${LIVE?lz(tokView):'<p class=wn>Backend not reachable — demo mode</p>'}</div><small class=mu>Flow: Client ID + PIN + TOTP → JWT / refresh / feed token. The Terminal API Key is editable here and sent only as the backend X-API-Key header.</small></div>`;
+/* --- 3 Dashboard: every setup --- */
+const planRows=d=>{for(const k in d)if(/plan/i.test(k)&&Array.isArray(d[k])&&d[k].length&&typeof d[k][0]=='object')return d[k];return[]};
+lv(2,()=>lz(async()=>{const d=await J('/setups'),live=d.live||[];let h=kp([['Indices with a decision',live.length],['Setups logged today',(d.today||[]).length]]);
+ live.forEach(x=>{const dd=x.decision||{},pl=planRows(dd),cols=pl.length?Object.keys(pl[0]).slice(0,8):[];h+=cd(`${esc(x.index)} · <b>${esc(dd.verdict||dd.final_verdict||'—')}</b>`,pl.length?tb(cols,pl.map(p=>cols.map(c=>esc(typeof p[c]=='object'?JSON.stringify(p[c]):p[c])))):'<span class=mu>No qualifying plan</span>')});
+ return h+cd("Today's setup log",tb(['Time','Index','Verdict'],(d.today||[]).slice(-30).reverse().map(e=>[(e.ts||'').slice(11,19),esc(e.index),esc((e.decision||{}).verdict||'—')])))}));
+/* --- 4 Market overview: tap index -> companies --- */
+lv(3,()=>`<div class=c><div class=k>Tap an index → all its companies</div>${chips(I6,'','moPick')}</div><div id=mo></div>`);
+async function moPick(n){setOn(n);const x=$('#mo');x.innerHTML='Loading…';try{x.innerHTML=consTbl(await J('/index/'+n+'/constituents'),'openChart')}catch(e){err('mo',e)}}
+/* --- 5 Option chain: 3 tabs --- */
+const fnoF=q=>{$('#fl').innerHTML=chips(FNO.filter(s=>s.toLowerCase().includes(q.toLowerCase())).slice(0,40),OC.sym,'pickOC')};
+lv(4,()=>`<div class=tb>${['Indian Indices','NSE (F&O stocks)','Sensex / BSE'].map((t,i)=>`<button class="${OC.t==i?'on':''}" onclick="OC.t=${i};OC.sym=['NIFTY','RELIANCE','SENSEX'][${i}];render()">${t}</button>`).join('')}</div>`+lz(async()=>{let h;
+ if(OC.t==1){if(!FNO.length)FNO=((await J('/fno-symbols')).symbols||[]).map(x=>typeof x=='string'?x:x.symbol||'');h=`<input placeholder="Search F&O stock…" oninput="fnoF(this.value)"><div id=fl>${chips(FNO.slice(0,40),OC.sym,'pickOC')}</div>`}
+ else h=chips(OC.t?['SENSEX','BANKEX']:['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY','NIFTYNXT50'],OC.sym,'pickOC');
+ setTimeout(()=>pickOC(OC.sym),0);return h+'<div id=ocx></div><div id=occ></div>'}));
+async function pickOC(sym,exp){OC.sym=sym;setOn(sym);const x=$('#occ'),k=$('#ocx');if(!x)return;x.innerHTML='Loading chain…';
+ if(OC.t!=1&&k)J('/index/'+sym+'/constituents').then(c=>{if($('#ocx'))$('#ocx').innerHTML=consTbl(c,'pickOC')}).catch(()=>{});
+ try{x.innerHTML=chainTbl(await J('/option-chain/'+encodeURIComponent(sym)+(exp?'?expiry='+encodeURIComponent(exp):'')))}catch(e){err('occ',e)}}
+/* --- 6 OI heatmap with index filter --- */
+function heat(c,m){const st=nearATM(c,12),k=m?'oiChg':'oi',mx=Math.max(1,...st.flatMap(s=>[Math.abs(s[k.length?'ce':'ce']&&s.ce[k]||0),Math.abs(s.pe&&s.pe[k]||0)])),w=600/Math.max(1,st.length);
+ return `<svg viewBox="0 0 600 205">${st.map((s,i)=>{const a=(s.ce&&s.ce[k]||0)/mx*80,b=(s.pe&&s.pe[k]||0)/mx*80,x=i*w;return `<rect x="${x+2}" y="${90-Math.max(a,0)}" width="${w/2-3}" height="${Math.abs(a)}" fill="var(--dn)"/><rect x="${x+w/2}" y="${90-Math.max(b,0)}" width="${w/2-3}" height="${Math.abs(b)}" fill="var(--up)"/><text x="${x+w/2}" y="186" font-size="8" text-anchor="middle" fill="var(--mu)" transform="rotate(-60 ${x+w/2} 186)">${s.strike}</text>`}).join('')}</svg>`}
+async function hmPick(s){HM=s;setOn(s);const x=$('#hm');x.innerHTML='Loading…';try{const c=await J('/option-chain/'+s);x.innerHTML=cd(`${s} · spot ${f(c.spot||0)} · PCR ${c.pcr??'–'} · ${HMM?'Change in OI':'Open interest'} (red CE / green PE)`,heat(c,HMM))}catch(e){err('hm',e)}}
+lv(5,()=>`<div class=c>${chips(I6,HM,'hmPick')}</div><div class=tb><button onclick="HMM=0;hmPick(HM)">OI</button><button onclick="HMM=1;hmPick(HM)">Change in OI</button></div><div id=hm></div>${lz(async()=>{hmPick(HM);return ''})}`);
+/* --- 7 Premium / volume: setup ideas --- */
+async function pvPick(s){PV=s;setOn(s);const x=$('#pv');x.innerHTML='Loading…';try{const c=await J('/option-chain/'+s),st=nearATM(c,20),idea=[];
+ const a=st.reduce((p,r)=>!p||Math.abs(r.strike-c.spot)<Math.abs(p.strike-c.spot)?r:p,null)||{ce:{},pe:{}};
+ st.forEach(r=>[['ce','CE'],['pe','PE']].forEach(([k,n])=>{const l=r[k];if(l&&l.oi&&l.vol){const vo=l.vol/l.oi,ch=l.oiChg||0,nt=vo>.5&&ch>0?'Long buildup (OI↑ vol↑)':vo>.5&&ch<0?'Unwinding / covering':'';if(nt)idea.push([r.strike+' '+n,l.ltp,L(l.oi),L(l.oiChg),L(l.vol),vo.toFixed(2),nt,vo])}}));
+ idea.sort((p,q)=>q[7]-p[7]);const pe=a.pe||{},ce=a.ce||{};
+ x.innerHTML=kp([['ATM CE premium',ce.ltp??'–'],['ATM PE premium',pe.ltp??'–'],['CE−PE spread',(ce.ltp!=null&&pe.ltp!=null)?sg(ce.ltp-pe.ltp):'–']])+cd(`${s} · setup ideas (screening only, not a signal)`,idea.length?tb(['Strike','LTP','OI','OI chg','Vol','Vol/OI','Idea'],idea.slice(0,10).map(r=>r.slice(0,7))):'<span class=mu>No high-activity strikes right now</span>')}catch(e){err('pv',e)}}
+lv(6,()=>`<div class=c>${chips(I6,PV,'pvPick')}</div><div id=pv></div>${lz(async()=>{pvPick(PV);return ''})}`);
+/* --- 14 AI 6-layer: names, analysis, daily memory --- */
+const d13=ST[13][2];
+ST[13][2]=()=>{const pq=window.PQ||'';return LIVE?`<div class=demo>Har layer apna model chalata hai (keys Railway me). Jawab din-wise memory me save hote hain.</div>`+lz(async()=>{const A=await J('/ai/layers');return cd('6 layers',A.layers.map(l=>`<div class=row><span><b>${l.id}</b> ${esc(l.name)} <span class=mu>· ${esc(l.role)}</span></span><span class="${l.on?'up':'dn'}">${l.on?esc(l.model):'off'}</span></div>`).join(''))+`<textarea id=aq rows=3 placeholder="Koi bhi sawaal / strategy…">${esc(pq)}</textarea><div class=tb><button class=p onclick="aiAsk()">Ask 6 layers</button><button onclick="aiSave()">⬇ Save today to phone</button></div><div id=ar></div>`}):d13()};
+async function aiAsk(){const q=$('#aq').value.trim();if(!q)return;const o=$('#ar');o.innerHTML='<p class=mu>6 layers soch rahe hain…</p>';
+ const ctx=`Focus symbol: ${CH.sym}. Uploaded strategy files: ${UP.map(u=>u.name+':\n'+u.text).join('\n---\n')||'none'}`;
+ try{const r=await J('/ai/ask',{method:'POST',body:JSON.stringify({question:q,context:ctx})});
+  o.innerHTML=r.layers.map(l=>`<div class=L><b>${l.id} · ${esc(l.name)}</b> <span class=pill>${esc(l.role)}</span> <span class=mu>${esc(l.model||'')}</span><div>${l.answer?esc(l.answer).replace(/\n/g,'<br>'):'<span class=mu>'+esc(l.error||'no answer')+'</span>'}</div></div>`).join('');
+  const a=JSON.parse(LS.g('aim:'+r.day)||'[]');a.push({q,layers:r.layers,ts:new Date().toISOString()});LS.s('aim:'+r.day,JSON.stringify(a))}catch(e){err('ar',e)}}
+async function aiSave(){try{const b=await(await api('/ai/memory/export')).blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ai-memory-'+new Date().toISOString().slice(0,10)+'.json';a.click()}catch(e){alert(e.message)}}
+const _ask0=window.ask;window.ask=async function(){if(typeof claude=='undefined'){$('#ar').innerHTML='<p class=bad>AI needs the backend.</p>';return}return _ask0()};
+/* --- 17 Charts --- */
+const CH={sym:'NIFTY',iv:'ONE_DAY',yrs:5,d:[],tool:'',pend:[],dr:[],n:140,e:0,st:''},NEED={h:1,v:1,l:2,fib:2,arrow:2,long:3,short:3},cp=new Map();let pan=null,pin=null,mv=0;
+const openChart=s=>{CH.sym=String(s).toUpperCase();go(17)};
+const demoCandles=y=>{let x=24000,s=7,o=[];const n=Math.round(y*250),t0=Date.now()-n*86400000*1.4;for(let i=0;i<n;i++){s=(s*9301+49297)%233280;const a=x;x=Math.max(1000,x*(1+(s/233280-.48)*.016));o.push([new Date(t0+i*86400000*1.4).toISOString().slice(0,10),a,Math.max(a,x)*1.003,Math.min(a,x)*.997,x,1e6])}return o};
+ST[16][2]=()=>`<div id=cw><div class=tb><input id=cs list=csl value="${esc(CH.sym)}" style="width:110px"><datalist id=csl>${[...I6,'NIFTYNEXT50',...FNO.slice(0,250)].map(s=>`<option>${esc(s)}`).join('')}</datalist><select id=ci>${['ONE_DAY','ONE_HOUR','THIRTY_MINUTE','FIFTEEN_MINUTE','FIVE_MINUTE'].map(v=>`<option ${v==CH.iv?'selected':''}>${v}`).join('')}</select><select id=cy>${[1,2,3,5,10].map(v=>`<option ${v==CH.yrs?'selected':''} value=${v}>${v}y`).join('')}</select><button class=p onclick="chLoad()">Load</button><input id=cst placeholder="Strikes 24700,24800" value="${esc(CH.st)}" style="width:150px" onchange="CH.st=this.value;chDraw()"><button onclick="chFs()">⛶ Full / Landscape</button></div><div class=tb>${[['','✋ Pan'],['h','─ H-line'],['v','│ V-line'],['l','⟋ Trend'],['fib','Fib'],['long','▲ Long'],['short','▼ Short'],['arrow','➤ Arrow']].map(([t,n])=>`<button data-t="${t}" class="${CH.tool==t?'on':''}" onclick="chTool('${t}')">${n}</button>`).join('')}<button onclick="chUndo()">↶ Undo</button><button onclick="chClear()">🗑 Clear</button></div><canvas id=cv></canvas></div><small class=mu id=cm></small><div class=c><div class=k>Index → companies (tap a company for its chart). Long/Short: tap Entry, Stop, Target.</div>${chips(I6,'','chIdx')}<div id=cc2></div></div>${lz(async()=>{chInit();return ''})}`;
+async function chIdx(n){setOn(n);CH.sym=n;$('#cs').value=n;chLoad();try{const c=await J('/index/'+n+'/constituents');$('#cc2').innerHTML=(c.stocks||[]).map(s=>`<span class=chip onclick="openChart('${esc(s.symbol)}')">${esc(s.symbol)}</span>`).join('')}catch(e){err('cc2',e)}}
+const chSize=()=>{const c=$('#cv');if(c){c.width=c.clientWidth*dpr;c.height=c.clientHeight*dpr}};
+const chSave=()=>LS.s('dr:'+CH.sym+':'+CH.iv,JSON.stringify(CH.dr));
+function chTool(t){CH.tool=t;CH.pend=[];document.querySelectorAll('[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t==t))}
+const chUndo=()=>{CH.dr.pop();chSave();chDraw()},chClear=()=>{CH.dr=[];CH.pend=[];chSave();chDraw()};
+async function chFs(){const w=$('#cw');try{if(document.fullscreenElement)await document.exitFullscreen();else if(w.requestFullscreen){await w.requestFullscreen();try{await screen.orientation.lock('landscape')}catch(e){}}else w.classList.toggle('fsx')}catch(e){w.classList.toggle('fsx')}setTimeout(()=>{chSize();chDraw()},250)}
+async function chLoad(){const m=$('#cm');if(!m)return;CH.sym=($('#cs').value||CH.sym).toUpperCase().trim();CH.iv=$('#ci').value;CH.yrs=+$('#cy').value;m.textContent='Loading '+CH.sym+'…';
+ try{if(LIVE){const r=await J(`/candles/${encodeURIComponent(CH.sym)}?interval=${CH.iv}&years=${CH.yrs}`);CH.d=r.candles.map(a=>[a[0],+a[1],+a[2],+a[3],+a[4],+a[5]]);m.textContent=`${CH.sym} · ${CH.d.length} candles${r.truncated?' (older part truncated; use a coarser interval)':''} · Angel One`}
+  else{CH.d=demoCandles(CH.yrs);m.textContent='Demo candles — connect the backend + Angel login for live data'}
+  CH.dr=JSON.parse(LS.g('dr:'+CH.sym+':'+CH.iv)||'[]');CH.e=0;CH.n=Math.min(140,CH.d.length);chSize();chDraw()}catch(e){m.innerHTML=`<span class=bad>${esc(e.message)}</span>`}}
+const pdist=()=>{const a=[...cp.values()];return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1};
+function geo(){const c=$('#cv'),W=c.clientWidth,H=c.clientHeight,pr=58,pb=20,pt=8,len=CH.d.length,R=len-1+8-CH.e,S=R-CH.n,bw=(W-pr)/CH.n;let lo=1e18,hi=-1e18;for(let i=Math.max(0,Math.floor(S));i<=Math.min(len-1,Math.ceil(R));i++){const r=CH.d[i];if(r[3]<lo)lo=r[3];if(r[2]>hi)hi=r[2]}if(hi<lo){lo=0;hi=1}const m=(hi-lo)*.06||1;lo-=m;hi+=m;return{W,H,pr,pb,S,R,bw,lo,hi,X:i=>(i-S+.5)*bw,Y:p=>pt+(hi-p)/(hi-lo)*(H-pt-pb),iX:x=>x/bw+S-.5,pY:y=>hi-(y-pt)/(H-pt-pb)*(hi-lo)}}
+function chInit(){const c=$('#cv');if(!c)return;
+ c.onpointerdown=e=>{c.setPointerCapture(e.pointerId);cp.set(e.pointerId,[e.clientX,e.clientY]);mv=0;pan={x:e.clientX,e:CH.e};if(cp.size==2)pin={d:pdist(),n:CH.n}};
+ c.onpointermove=e=>{if(!cp.has(e.pointerId)||!CH.d.length)return;cp.set(e.pointerId,[e.clientX,e.clientY]);if(cp.size==2&&pin){CH.n=Math.max(15,Math.min(CH.d.length,Math.round(pin.n*pin.d/pdist())));mv=99;chDraw();return}const dx=e.clientX-pan.x;mv=Math.max(mv,Math.abs(dx));if(CH.tool&&mv<8)return;CH.e=Math.max(-20,Math.min(CH.d.length-CH.n,Math.round(pan.e+dx/geo().bw)));chDraw()};
+ c.onpointerup=e=>{cp.delete(e.pointerId);pin=null;if(mv<8&&CH.tool&&cp.size==0&&CH.d.length){const r=c.getBoundingClientRect(),g=geo();CH.pend.push([Math.round(g.iX(e.clientX-r.left)),g.pY(e.clientY-r.top)]);if(CH.pend.length>=NEED[CH.tool]){CH.dr.push({t:CH.tool,pts:CH.pend});CH.pend=[];chSave()}chDraw()}};
+ c.onpointercancel=e=>{cp.delete(e.pointerId);pin=null};
+ c.onwheel=e=>{e.preventDefault();CH.n=Math.max(15,Math.min(CH.d.length||15,Math.round(CH.n*(e.deltaY>0?1.12:.89))));chDraw()};
+ chSize();chLoad()}
+addEventListener('resize',()=>{chSize();chDraw()});document.addEventListener('fullscreenchange',()=>setTimeout(()=>{chSize();chDraw()},150));
+function chDraw(){const c=$('#cv');if(!c||!CH.d.length)return;const x=c.getContext('2d'),g=geo(),S=getComputedStyle(document.documentElement),col=n=>S.getPropertyValue(n).trim(),W=g.W,H=g.H;
+ x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,H);x.font='11px system-ui';x.lineWidth=1;
+ const tag=(p,t,c1)=>{const y=g.Y(p);x.fillStyle=c1;x.fillRect(W-g.pr,y-8,g.pr,16);x.fillStyle='#fff';x.fillText(t,W-g.pr+3,y+4)};
+ const hl=(p,c1,t,dash)=>{const y=g.Y(p);x.save();x.strokeStyle=c1;x.setLineDash(dash||[]);x.beginPath();x.moveTo(0,y);x.lineTo(W-g.pr,y);x.stroke();x.restore();tag(p,t,c1)};
+ for(let k=0;k<=5;k++){const p=g.lo+(g.hi-g.lo)*k/5,y=g.Y(p);x.strokeStyle=col('--bd');x.beginPath();x.moveTo(0,y);x.lineTo(W-g.pr,y);x.stroke();x.fillStyle=col('--mu');x.fillText(f(p),W-g.pr+4,y+4)}
+ const up=col('--up'),dn=col('--dn'),ac=col('--ac'),i0=Math.max(0,Math.floor(g.S)),i1=Math.min(CH.d.length-1,Math.ceil(g.R));
+ for(let i=i0;i<=i1;i++){const r=CH.d[i],X=g.X(i);x.strokeStyle=x.fillStyle=r[4]>=r[1]?up:dn;x.beginPath();x.moveTo(X,g.Y(r[2]));x.lineTo(X,g.Y(r[3]));x.stroke();x.fillRect(X-g.bw*.35,g.Y(Math.max(r[1],r[4])),Math.max(1,g.bw*.7),Math.max(1,Math.abs(g.Y(r[1])-g.Y(r[4]))))}
+ x.fillStyle=col('--mu');const sp=Math.max(1,Math.round((i1-i0)/5));for(let i=i0;i<=i1;i+=sp)x.fillText(String(CH.d[i][0]).slice(0,10),Math.max(0,g.X(i)-24),H-5);
+ const last=CH.d[CH.d.length-1][4];hl(last,ac,f(last),[5,3]);
+ (CH.st||'').split(',').map(s=>+s.trim()).filter(Boolean).forEach(k=>hl(k,col('--wn'),'K '+k,[2,4]));
+ [...CH.dr,{t:'_p',pts:CH.pend}].forEach(d=>{const P=d.pts.map(([i,p])=>[g.X(i),g.Y(p)]);if(!P.length)return;x.save();x.strokeStyle=x.fillStyle=ac;x.lineWidth=1.6;const ln=(a,b)=>{x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()};
+  if(d.t=='_p')P.forEach(q=>{x.beginPath();x.arc(q[0],q[1],4,0,7);x.fill()});
+  else if(d.t=='h'){x.setLineDash([6,4]);ln([0,P[0][1]],[W-g.pr,P[0][1]]);x.fillText(f(d.pts[0][1]),4,P[0][1]-3)}
+  else if(d.t=='v'){x.setLineDash([6,4]);ln([P[0][0],0],[P[0][0],H-g.pb])}
+  else if(d.t=='l')ln(P[0],P[1]);
+  else if(d.t=='arrow'){ln(P[0],P[1]);const a=Math.atan2(P[1][1]-P[0][1],P[1][0]-P[0][0]);[2.6,-2.6].forEach(o=>ln(P[1],[P[1][0]+12*Math.cos(a+o),P[1][1]+12*Math.sin(a+o)]))}
+  else if(d.t=='fib'){const xl=Math.min(P[0][0],P[1][0]);ln(P[0],P[1]);[0,.236,.382,.5,.618,.786,1].forEach(v=>{const p=d.pts[0][1]+(d.pts[1][1]-d.pts[0][1])*v,y=g.Y(p);x.globalAlpha=.8;ln([xl,y],[W-g.pr,y]);x.globalAlpha=1;x.fillText(v+'  '+f(p),xl+4,y-3)})}
+  else{const [E,K,T]=d.pts,x0=P[0][0],w=Math.max(110,Math.abs(P[2][0]-x0));x.globalAlpha=.2;x.fillStyle=up;x.fillRect(x0,Math.min(P[0][1],P[2][1]),w,Math.abs(P[2][1]-P[0][1]));x.fillStyle=dn;x.fillRect(x0,Math.min(P[0][1],P[1][1]),w,Math.abs(P[1][1]-P[0][1]));x.globalAlpha=1;x.fillStyle=ac;ln([x0,P[0][1]],[x0+w,P[0][1]]);x.fillText(`${d.t.toUpperCase()} ${f(E[1])} · SL ${f(K[1])} · TP ${f(T[1])} · R:R ${(Math.abs(T[1]-E[1])/(Math.abs(E[1]-K[1])||1)).toFixed(1)}`,x0+4,P[0][1]-4)}
+  x.restore()})}
+/* --- 26 Data sources, 28 AI history --- */
+lv(25,()=>lz(async()=>{const [a,n,m,t]=await Promise.allSettled([J('/angel/token'),J('/nse/ping'),J('/mcp/status'),J('/net')]),R=(k,r,fn)=>`<div class=row><span>${k}</span>${r.status=='fulfilled'?`<b class=up>${esc(fn(r.value))}</b>`:`<b class=dn>${esc(r.reason.message)}</b>`}</div>`;
+ return cd('Live status',R('Angel One',a,v=>v.connected?'logged in':'not logged in')+R('NSE data',n,v=>'ok via '+(v.via||'?'))+R('MCP bridge',m,v=>v.reachable?'reachable':'live servers: '+(v.live_usable.join(',')||'none (set NSE_MCP_URL)'))+R('Net',t,v=>v.offline?'OFFLINE (ticked)':'online'))+'<button class=p onclick="render()">Re-check</button>'}));
+async function aiDay(d){try{const e=(await J('/ai/memory?day='+d)).entries;$('#ad').innerHTML=e.map(x=>`<div class=L><b>${esc(x.layer)} ${esc(x.model||'')}</b> <span class=mu>${esc((x.ts||'').slice(11,19))}</span><div class=mu>Q: ${esc(x.question||'')}</div><div>${esc(x.analysis||'')}</div></div>`).join('')||'<span class=mu>Empty</span>'}catch(e){err('ad',e)}}
+lv(27,()=>lz(async()=>{const d=(await J('/ai/days')).days;return cd('Saved days (server)',d.length?d.slice().reverse().map(x=>`<span class=chip onclick="aiDay('${x}')">${x}</span>`).join(''):'<span class=mu>No saved days yet</span>')+'<div id=ad></div><button class=p onclick="go(14)">Ask a question</button>'}));
+/* --- header: Net OFF tick + status pill --- */
+const pill=document.createElement('span'),nt=document.createElement('label');pill.className='pill';nt.className='tag';nt.style.cssText='display:flex;gap:4px;align-items:center;cursor:pointer';nt.innerHTML='<input type=checkbox id=nt style="width:auto;margin:0"> Net OFF';
+$('.top').insertBefore(pill,$('#th'));$('.top').insertBefore(nt,$('#th'));
+$('#nt').onchange=async e=>{try{await J('/net',{method:'POST',body:JSON.stringify({offline:e.target.checked})})}catch(x){e.target.checked=!e.target.checked;alert(x.message)}};
+(async()=>{try{const h=await fetch('/health',{cache:'no-store'});LIVE=h.ok&&(await h.json()).status=='ok'}catch(e){LIVE=false}
+ pill.textContent=LIVE?'● LIVE backend':'DEMO';cur=Math.min(30,Math.max(1,parseInt(location.hash.slice(1))||1));if(LIVE&&!key())cur=2;render();
+ if(LIVE&&key()){try{$('#nt').checked=(await J('/net')).offline;FNO=((await J('/fno-symbols')).symbols||[]).map(x=>typeof x=='string'?x:x.symbol||'')}catch(e){}}})();
+</script></body></html>
