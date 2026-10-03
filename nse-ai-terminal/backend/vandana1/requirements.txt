@@ -8,6 +8,6 @@ websocket-client
 numpy
 python-dotenv
 joblib
-mcp==1.28.0
+mcp==1.28.1
 pandas
 anthropic
