@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: nse-ai-backend
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    plan: free
-    envVars:
-      - key: FEED_MODE
-        value: sim
