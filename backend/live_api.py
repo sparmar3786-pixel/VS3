@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
@@ -79,9 +79,13 @@ except Exception:
     pass
 
 
-def guard(x_api_key: str = Header(default="")) -> None:
+def guard(request: Request, x_api_key: str = Header(default="")) -> None:
     key = os.getenv("TERMINAL_API_KEY", "")
+    # Read-only market/diagnostic GETs remain usable when no terminal key is configured.
+    # Mutating/authenticated POST routes stay fail-closed.
     if not key:
+        if request.method == "GET":
+            return
         raise HTTPException(503, "TERMINAL_API_KEY is not set on the server")
     if not hmac.compare_digest(x_api_key, key):
         raise HTTPException(401, "bad API key")
