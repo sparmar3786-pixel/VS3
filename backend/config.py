@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     chain_cache_ttl_sec: float = 15.0
     chain_stale_sec: float = 60.0
     chain_failure_backoff_sec: float = 15.0
+    api_token: str = ""
     api_token_required: str = "on"
     workers: int = 1
 
