@@ -21,7 +21,7 @@ class Strategy:
 
 CORE = [
     Strategy(
-        id=f"S{item["id"]:03d}",
+        id=f"S{item['id']:03d}",
         name=item["name"],
         family=item["family"],
     )
@@ -33,7 +33,7 @@ CORE = [
 # strategy_registry.ALL_STRATEGIES rather than changing this contract.
 ADVANCED = [
     Strategy(
-        id=f"X{item["id"]:03d}",
+        id=f"X{item['id']:03d}",
         name=item["name"],
         family=item["family"],
         tier="advanced",
