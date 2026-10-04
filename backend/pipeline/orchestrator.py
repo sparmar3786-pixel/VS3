@@ -9,12 +9,13 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 from loguru import logger
 from backend.config import get_settings
 from backend.market_cache import cache_age_sec, is_market_open, load_snapshot, save_snapshot
+from backend.pipeline.chain_cache import ChainCache, ChainResult
 from backend.models import Decision, Snapshot, Tick
 from backend.pipeline import loader  # noqa: F401
 from backend.pipeline.base import REGISTRY
 from backend.pipeline.context import PipelineContext
 
-CYCLE_SECONDS = 3.0
+CYCLE_SECONDS = 5.0
 Broadcast = Callable[[str, Any], Awaitable[None]]
 
 class TerminalEngine:
@@ -28,6 +29,12 @@ class TerminalEngine:
         self._mcp_source=None; self._mcp_task=None
         self._mcp_snapshots: Dict[str,Snapshot]={}; self._mcp_updated: Dict[str,float]={}
         self._after_market_ai_at: Dict[str,float]={}
+        self._log_seen: Dict[tuple[str,str,str], float] = {}
+        self._chain_cache = ChainCache(
+            ttl_sec=self.settings.chain_cache_ttl_sec,
+            stale_sec=self.settings.chain_stale_sec,
+            failure_backoff_sec=self.settings.chain_failure_backoff_sec,
+        )
 
     async def ensure_source(self):
         if self._source is None:
@@ -94,7 +101,10 @@ class TerminalEngine:
                     if self.broadcaster:
                         await self.broadcaster("decision",decision.model_dump(mode="json"))
             except Exception as e:
-                logger.warning("engine: {} cycle failed: {}",index,e)
+                key=("cycle_failed", index, type(e).__name__)
+                if time.monotonic() - self._log_seen.get(key, 0.0) >= 60.0:
+                    self._log_seen[key]=time.monotonic()
+                    logger.warning("engine: {} cycle failed ({})",index,type(e).__name__)
         if self.broadcaster: await self.broadcaster("state",self.state_frame())
 
     async def _mcp_refresh_loop(self)->None:
@@ -115,31 +125,60 @@ class TerminalEngine:
                             self._mcp_snapshots[index]=snap
                             self._mcp_updated[index]=time.time()
                     except Exception as e:
-                        logger.warning("nse-mcp: {} chain refresh failed ({})",index,type(e).__name__)
+                        key=("mcp_chain_failed", index, type(e).__name__)
+                        if time.monotonic() - self._log_seen.get(key, 0.0) >= 60.0:
+                            self._log_seen[key]=time.monotonic()
+                            logger.warning("nse-mcp: {} chain refresh failed ({})",index,type(e).__name__)
                 await asyncio.sleep(max(5.0,self.settings.nse_mcp_poll_sec))
         except asyncio.CancelledError:
             raise
         except Exception as e:
             logger.warning("nse-mcp: background reader stopped ({})",type(e).__name__)
 
+    async def _refresh_source_auth(self) -> None:
+        if self._source is None:
+            return
+        try:
+            self._source._connected = False
+        except Exception:
+            pass
+        await self._source.connect()
+
+    async def _chain_result(self, index: str, live: bool) -> ChainResult:
+        if not live:
+            snap = load_snapshot(index) if self.settings.market_cache_on else None
+            age = cache_age_sec(index)
+            if snap is not None:
+                return ChainResult(snap, max(0.0, age or 0.0),
+                                   getattr(snap, "source", "disk"), "MARKET_CLOSED", False)
+            return ChainResult(None, max(0.0, age or 0.0), "none", "MARKET_CLOSED", False)
+
+        return await self._chain_cache.get_chain(
+            index,
+            lambda: self._source.get_option_chain(index),
+            disk_fallback=load_snapshot,
+            disk_age=cache_age_sec,
+            auth_refresh=self._refresh_source_auth,
+        )
+
     async def _cycle_for_index(self,index:str)->Optional[Decision]:
         assert self._source is not None
         live=is_market_open()
-        snapshot: Optional[Snapshot]=None
-        if live:
-            try:
-                snapshot=await self._source.get_option_chain(index)
-                if snapshot is not None and self.settings.market_cache_on:
-                    save_snapshot(snapshot,source=getattr(self._source,"name","live"))
-            except Exception as e:
-                logger.warning("engine: {} live chain failed; using cache ({})",index,type(e).__name__)
-        if snapshot is None and self.settings.market_cache_on:
-            snapshot=load_snapshot(index)
-            if snapshot is not None:
-                logger.info("engine: {} using last cached snapshot age={}s market_open={}",
-                            index,cache_age_sec(index),live)
+        chain=await self._chain_result(index, live)
+        snapshot=chain.data
+
         if snapshot is None:
+            if chain.state != "MARKET_CLOSED":
+                key=("data_gap", index, chain.state)
+                if time.monotonic() - self._log_seen.get(key, 0.0) >= 60.0:
+                    self._log_seen[key]=time.monotonic()
+                    logger.warning("engine: {} data gap state={} age={}s",
+                                   index, chain.state, round(chain.age_sec,1))
             return None
+
+        if chain.state == "FRESH" and self.settings.market_cache_on:
+            save_snapshot(snapshot, source=chain.source)
+
         snapshot.data_quality=None
         self._snapshots[index]=snapshot
         if live:
@@ -152,8 +191,10 @@ class TerminalEngine:
                             prev_snapshot=self._prev_snapshots.get(index))
         ctx.put("_memory",self.memory)
         ctx.put("market_open",live)
-        ctx.put("snapshot_source","live" if live else "cache")
-        ctx.put("snapshot_cache_age_sec",cache_age_sec(index))
+        ctx.put("snapshot_source",chain.source)
+        ctx.put("snapshot_cache_age_sec",chain.age_sec)
+        ctx.put("chain_state",chain.state)
+        ctx.put("trade_allowed",chain.trade_allowed)
         ctx.put("nse_mcp_snapshot",self._mcp_snapshots.get(index))
         ctx.put("nse_mcp_age_sec",self._mcp_updated.get(index))
         ai_allowed=self._ai is not None
