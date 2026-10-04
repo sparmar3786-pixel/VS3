@@ -14,8 +14,6 @@ from backend.config import get_settings
 from backend.live_api import _from_snap, _jwt_exp
 from backend.main import state
 
-router = APIRouter(prefix="/v1", tags=["pdf-contract"], dependencies=[Depends(_require_api_token)])
-
 def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
                        authorization: str = Header(default="")) -> None:
     s = get_settings()
@@ -29,6 +27,8 @@ def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
         supplied = authorization[7:].strip()
     if not supplied or not hmac.compare_digest(supplied, expected):
         raise HTTPException(401, "authentication required")
+
+router = APIRouter(prefix="/v1", tags=["pdf-contract"], dependencies=[Depends(_require_api_token)])
 
 MCP_TOOLS = [
     "get_indices", "get_market_status", "get_option_chain", "get_quote",
