@@ -66,13 +66,6 @@ def _build():
  async def get_terminal_verdict(index:str)->Dict[str,Any]:
   d=await (await _get_engine()).run_strategy_scan(index)
   return {"index":index,"verdict":d.get("verdict"),"plans":d.get("plans_qualifying"),"suppressed":d.get("plans_suppressed")}
- @mcp.tool()
- async def place_live_order(index:str,strike:float,option_type:str,side:str,quantity:int,confirm:str)->Dict[str,Any]:
-  if not _settings.live_orders_on:return {"accepted":False,"reason":"live orders disabled (ENABLE_LIVE_ORDERS=0)"}
-  expected=f"{index}-{option_type}-{strike}-{side}"
-  if _settings.human_confirm_required and confirm!=expected:return {"accepted":False,"reason":f"human confirmation required; echo confirm={expected!r}"}
-  res=await (await _get_engine()).place_live_order({"index":index,"strike":strike,"option_type":option_type,"side":side,"quantity":quantity})
-  return {"mode":"LIVE",**res}
  return mcp
 
 def main():
