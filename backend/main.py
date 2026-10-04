@@ -32,7 +32,6 @@ state.engine.broadcaster=engine_broadcast
 
 @app.on_event("startup")
 async def start_engine()->None:
-    await state.engine.start()
     if state.task is None or state.task.done():
         state.task=asyncio.create_task(state.engine.run_forever(),name="terminal-engine")
 
