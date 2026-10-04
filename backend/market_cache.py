@@ -31,6 +31,9 @@ def _path(index: str) -> Path:
 
 def save_snapshot(snapshot: Snapshot, *, source: str = "live") -> None:
     payload = {
+        # Age is anchored to the source snapshot timestamp, never file mtime.
+        "fetched_at_epoch": snapshot.timestamp.timestamp(),
+        "fetched_at_iso": snapshot.timestamp.astimezone(timezone.utc).isoformat(),
         "saved_at": time.time(),
         "saved_at_iso": datetime.now(timezone.utc).isoformat(),
         "source": source,
@@ -56,7 +59,9 @@ def cache_age_sec(index: str, now: Optional[float] = None) -> Optional[float]:
         return None
     try:
         payload = json.loads(p.read_text(encoding="utf-8"))
-        saved = float(payload.get("saved_at", p.stat().st_mtime))
+        saved = float(payload.get("fetched_at_epoch", payload.get("saved_at", 0.0)))
+        if saved <= 0.0:
+            return None
         return max(0.0, (now or time.time()) - saved)
     except Exception:
         return None
