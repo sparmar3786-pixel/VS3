@@ -59,7 +59,25 @@ class SixLayerAI:
           "data_quality_passed":bool(getattr(ctx.get("dq"),"passed",True)),
           "top_oi_strikes":[{"strike":s.strike,"ce_oi":s.ce_oi,"pe_oi":s.pe_oi} for s in top],
           "probable_covering":(ctx.get("seller_pressure") or {}).get("probable_covering_strikes",[]),
-          "allowed_strikes":[s.strike for s in snap.strikes]}
+          "allowed_strikes":[s.strike for s in snap.strikes],
+          "market_session":"LIVE" if ctx.get("market_open") else "AFTER_MARKET_LAST_FETCH",
+          "snapshot_source":ctx.get("snapshot_source","unknown"),
+          "snapshot_cache_age_sec":ctx.get("snapshot_cache_age_sec"),
+          "nse_mcp":self._mcp_digest(ctx.get("nse_mcp_snapshot"),ctx.get("nse_mcp_age_sec"))}
+ def _mcp_digest(self,snap,updated):
+  if snap is None:
+   return {"available":False,"age_sec":None,"spot":None,"expiry":None,"strikes":[]}
+  rows=sorted(snap.strikes,key=lambda x:(x.ce_oi or 0)+(x.pe_oi or 0),reverse=True)[:10]
+  age=None
+  if updated is not None:
+   import time
+   age=max(0.0,time.time()-float(updated))
+  return {"available":True,"age_sec":age,"spot":snap.spot,"expiry":snap.expiry,
+          "source":snap.source,
+          "strikes":[{"strike":x.strike,"ce_oi":x.ce_oi,"pe_oi":x.pe_oi,
+                       "ce_ltp":x.ce_ltp,"pe_ltp":x.pe_ltp,"ce_iv":x.ce_iv,"pe_iv":x.pe_iv}
+                      for x in rows]}
+
  async def _call_layer(self,layer,digest):
   model=await self._model_for(layer)
   if not model:return None
