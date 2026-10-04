@@ -141,7 +141,6 @@ class Settings(BaseSettings):
         return self.ai_web_search.strip().lower() in {"1", "on", "true", "yes"}
 
     @property
-    @property
     def market_cache_on(self) -> bool:
         return self.market_cache_enabled.strip().lower() in {"1", "on", "true", "yes"}
 
