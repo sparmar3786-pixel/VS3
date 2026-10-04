@@ -2,6 +2,7 @@
 from __future__ import annotations
 import asyncio
 import inspect
+import time
 from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, Optional
@@ -36,7 +37,11 @@ class TerminalEngine:
 
     async def connect_source(self)->None:
         source=await self.ensure_source()
-        await source.connect()
+        try:
+            if not getattr(source,"connected",False):
+                await source.connect()
+        except Exception as e:
+            logger.warning("engine: primary live source unavailable ({})",type(e).__name__)
         if self.settings.ai_on and self._ai is None:
             from backend.ai.six_layer_ai import build_ai_client
             self._ai=build_ai_client(self.settings)
@@ -79,6 +84,8 @@ class TerminalEngine:
 
     async def run_cycle(self)->None:
         self._cycle+=1
+        if self._source is not None and not getattr(self._source,"connected",False):
+            await self.connect_source()
         for index in self.settings.index_list:
             try:
                 decision=await self._cycle_for_index(index)
