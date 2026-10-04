@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Dict, Optional
 from loguru import logger
 from backend.config import get_settings
+from backend.market_cache import cache_age_sec, is_market_open, load_snapshot, save_snapshot
 from backend.models import Decision, Snapshot, Tick
 from backend.pipeline import loader  # noqa: F401
 from backend.pipeline.base import REGISTRY
@@ -23,6 +24,9 @@ class TerminalEngine:
         self._prev_snapshots: Dict[str,Snapshot]={}; self._contexts: Dict[str,PipelineContext]={}
         self._ticks={i:deque(maxlen=500) for i in self.settings.index_list}
         self._last_bias: Dict[str,float]={}; self._cycle=0
+        self._mcp_source=None; self._mcp_task=None
+        self._mcp_snapshots: Dict[str,Snapshot]={}; self._mcp_updated: Dict[str,float]={}
+        self._after_market_ai_at: Dict[str,float]={}
 
     async def ensure_source(self):
         if self._source is None:
@@ -37,6 +41,8 @@ class TerminalEngine:
             from backend.ai.six_layer_ai import build_ai_client
             self._ai=build_ai_client(self.settings)
         self._running=True
+        if self.settings.mcp_on and self._mcp_task is None:
+            self._mcp_task=asyncio.create_task(self._mcp_refresh_loop(),name="nse-mcp-chain-cache")
 
     async def start(self)->None:
         await self.connect_source()
@@ -44,6 +50,15 @@ class TerminalEngine:
 
     async def stop(self)->None:
         self._running=False
+        if self._mcp_task:
+            self._mcp_task.cancel()
+            try: await self._mcp_task
+            except BaseException: pass
+            self._mcp_task=None
+        if self._mcp_source is not None:
+            try: await self._mcp_source.close()
+            except Exception: pass
+            self._mcp_source=None
         if self._source is not None:
             try: await self._source.close()
             except Exception: pass
@@ -60,7 +75,7 @@ class TerminalEngine:
                 self._running=False
                 logger.error("engine: startup/cycle error: {}",e)
                 await asyncio.sleep(5.0)
-            await asyncio.sleep(CYCLE_SECONDS)
+            await asyncio.sleep(self.settings.engine_cycle_sec)
 
     async def run_cycle(self)->None:
         self._cycle+=1
@@ -75,20 +90,71 @@ class TerminalEngine:
                 logger.warning("engine: {} cycle failed: {}",index,e)
         if self.broadcaster: await self.broadcaster("state",self.state_frame())
 
+    async def _mcp_refresh_loop(self)->None:
+        """Continuously read NSE MCP option-chain data without replacing Angel live data."""
+        try:
+            from backend.mcp.mcp_client import MCPSource
+            self._mcp_source=MCPSource()
+            await self._mcp_source.connect()
+            if getattr(self._mcp_source,"_active",None) is None:
+                logger.warning("nse-mcp: no active MCP server; background chain cache disabled")
+                return
+            while self._running:
+                for index in self.settings.index_list:
+                    try:
+                        snap=await self._mcp_source.get_option_chain(index)
+                        if snap is not None and getattr(snap,"source","") == "mcp":
+                            self._mcp_snapshots[index]=snap
+                            self._mcp_updated[index]=time.time()
+                    except Exception as e:
+                        logger.warning("nse-mcp: {} chain refresh failed ({})",index,type(e).__name__)
+                await asyncio.sleep(max(5.0,self.settings.nse_mcp_poll_sec))
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.warning("nse-mcp: background reader stopped ({})",type(e).__name__)
+
     async def _cycle_for_index(self,index:str)->Optional[Decision]:
         assert self._source is not None
-        snapshot=await self._source.get_option_chain(index)
-        if snapshot is None:return None
+        live=is_market_open()
+        snapshot: Optional[Snapshot]=None
+        if live:
+            try:
+                snapshot=await self._source.get_option_chain(index)
+                if snapshot is not None and self.settings.market_cache_on:
+                    save_snapshot(snapshot,source=getattr(self._source,"name","live"))
+            except Exception as e:
+                logger.warning("engine: {} live chain failed; using cache ({})",index,type(e).__name__)
+        if snapshot is None and self.settings.market_cache_on:
+            snapshot=load_snapshot(index)
+            if snapshot is not None:
+                logger.info("engine: {} using last cached snapshot age={}s market_open={}",
+                            index,cache_age_sec(index),live)
+        if snapshot is None:
+            return None
         snapshot.data_quality=None
         self._snapshots[index]=snapshot
-        try:
-            tick=await self._source.get_quote(index,token=index)
-            if tick is not None:self._ticks[index].append(tick)
-        except Exception: pass
+        if live:
+            try:
+                tick=await self._source.get_quote(index,token=index)
+                if tick is not None:self._ticks[index].append(tick)
+            except Exception: pass
         ctx=PipelineContext(index=index,snapshot=snapshot,settings=self.settings,
                             ticks=deque(self._ticks[index],maxlen=500),
                             prev_snapshot=self._prev_snapshots.get(index))
-        ctx.put("_memory",self.memory); ctx.put("_ai",self._ai)
+        ctx.put("_memory",self.memory)
+        ctx.put("market_open",live)
+        ctx.put("snapshot_source","live" if live else "cache")
+        ctx.put("snapshot_cache_age_sec",cache_age_sec(index))
+        ctx.put("nse_mcp_snapshot",self._mcp_snapshots.get(index))
+        ctx.put("nse_mcp_age_sec",self._mcp_updated.get(index))
+        ai_allowed=self._ai is not None
+        if not live:
+            now=time.monotonic()
+            last=self._after_market_ai_at.get(index,0.0)
+            ai_allowed=ai_allowed and (now-last >= self.settings.after_market_ai_interval_sec)
+            if ai_allowed:self._after_market_ai_at[index]=now
+        ctx.put("_ai",self._ai if ai_allowed else None)
         ctx.put("cross_index",dict(self._last_bias))
         for part in sorted(REGISTRY):
             fn=REGISTRY[part]; res=fn(ctx)
@@ -122,7 +188,11 @@ class TerminalEngine:
             "timestamp":datetime.now(timezone.utc).isoformat(),
             "source":getattr(self._source,"name","none"),
             "advanced":self.settings.advanced_enabled,
-            "snapshots":{k:{"spot":v.spot,"atm":v.atm_strike,"expiry":v.expiry,"strikes":len(v.strikes),"source":v.source} for k,v in self._snapshots.items()},
+            "market_open":is_market_open(),
+            "snapshots":{k:{"spot":v.spot,"atm":v.atm_strike,"expiry":v.expiry,"strikes":len(v.strikes),
+                             "source":v.source,"cache_age_sec":cache_age_sec(k)} for k,v in self._snapshots.items()},
+            "nse_mcp":{k:{"age_sec":max(0.0,time.time()-t),"source":"mcp","strikes":len(self._mcp_snapshots[k].strikes)}
+                       for k,t in self._mcp_updated.items() if k in self._mcp_snapshots},
             "decisions":{k:{"verdict":v.verdict.value,"plans":v.plans_qualifying,"suppressed":v.plans_suppressed} for k,v in self._decisions.items()},
         }
 
