@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     max_snapshot_age_sec: float = 10.0
     max_tick_jump_pct: float = 5.0
     rate_limit_rps: float = 8.0
+    engine_cycle_sec: float = 3.0
+    nse_mcp_poll_sec: float = 15.0
+    market_cache_enabled: str = "on"
+    after_market_ai_interval_sec: float = 300.0
+    market_cache_dir: str = "data/market_cache"
 
     # ---------------- indices ----------------
     indices: str = "NIFTY,BANKNIFTY,FINNIFTY,MIDCPNIFTY,SENSEX,BANKEX"
@@ -134,6 +139,11 @@ class Settings(BaseSettings):
     @property
     def web_search_on(self) -> bool:
         return self.ai_web_search.strip().lower() in {"1", "on", "true", "yes"}
+
+    @property
+    @property
+    def market_cache_on(self) -> bool:
+        return self.market_cache_enabled.strip().lower() in {"1", "on", "true", "yes"}
 
     @property
     def fallback_order(self) -> List[str]:
