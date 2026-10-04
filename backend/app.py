@@ -14,12 +14,14 @@ from fastapi.responses import FileResponse
 from backend.main import app
 from backend.live_api import build_router, recorder
 from backend.platform_router import build_router as build_platform_router
+from backend.v1_compat import router as v1_router
 
 ROOT = Path(__file__).resolve().parent.parent
 _frontend = ROOT / "frontend"
 
 app.include_router(build_router(lambda: getattr(__import__("backend.main", fromlist=["state"]), "state").engine), prefix="")
 app.include_router(build_platform_router())
+app.include_router(v1_router)
 
 _recorder_task: asyncio.Task | None = None
 
