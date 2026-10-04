@@ -110,7 +110,8 @@ class TerminalEngine:
                 for index in self.settings.index_list:
                     try:
                         snap=await self._mcp_source.get_option_chain(index)
-                        if snap is not None and getattr(snap,"source","") == "mcp":
+                        if snap is not None:
+                            snap.source="nse_mcp"
                             self._mcp_snapshots[index]=snap
                             self._mcp_updated[index]=time.time()
                     except Exception as e:
