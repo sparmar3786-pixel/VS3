@@ -7,13 +7,28 @@ import csv
 import io
 import time
 from typing import Any, Optional
-from fastapi import APIRouter, Body, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, WebSocket, WebSocketDisconnect
+import hmac
 from fastapi.responses import Response
 from backend.config import get_settings
 from backend.live_api import _from_snap, _jwt_exp
 from backend.main import state
 
-router = APIRouter(prefix="/v1", tags=["pdf-contract"])
+router = APIRouter(prefix="/v1", tags=["pdf-contract"], dependencies=[Depends(_require_api_token)])
+
+def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
+                       authorization: str = Header(default="")) -> None:
+    s = get_settings()
+    if str(s.api_token_required).strip().lower() not in {"1", "on", "true", "yes"}:
+        return
+    expected = str(s.api_token or "").strip() if hasattr(s, "api_token") else ""
+    if not expected:
+        raise HTTPException(503, "API_TOKEN is required on the server")
+    supplied = x_app_key.strip()
+    if not supplied and authorization.lower().startswith("bearer "):
+        supplied = authorization[7:].strip()
+    if not supplied or not hmac.compare_digest(supplied, expected):
+        raise HTTPException(401, "authentication required")
 
 MCP_TOOLS = [
     "get_indices", "get_market_status", "get_option_chain", "get_quote",
@@ -163,6 +178,19 @@ async def terminal() -> dict:
 
 @router.websocket("/ws")
 async def ws_v1(ws: WebSocket) -> None:
+    s = get_settings()
+    expected = str(getattr(s, "api_token", "") or "").strip()
+    supplied = ws.headers.get("x-app-key", "").strip()
+    auth = ws.headers.get("authorization", "")
+    if not supplied and auth.lower().startswith("bearer "):
+        supplied = auth[7:].strip()
+    if str(s.api_token_required).strip().lower() in {"1", "on", "true", "yes"}:
+        if not expected:
+            await ws.close(code=1011)
+            return
+        if not supplied or not hmac.compare_digest(supplied, expected):
+            await ws.close(code=1008)
+            return
     await ws.accept()
     state.clients.add(ws)
     try:
