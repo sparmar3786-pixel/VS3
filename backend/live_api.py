@@ -30,6 +30,7 @@ from pydantic import BaseModel
 from backend import nse_http
 from backend.config import get_settings
 from backend.logging_config import get_logger
+from backend.strategies.catalog import strategy_search
 
 log = get_logger("live")
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -372,6 +373,15 @@ def build_router(get_engine: Callable[[], Any]) -> APIRouter:
             if d:
                 live.append({"index": i, "decision": d.model_dump(mode="json")})
         return {"live": live, "today": _read_jsonl(DATA / "setups" / f"{_today()}.jsonl")}
+
+    # ---- strategy registry ----
+    @r.get("/strategies")
+    async def strategies(q: str = "") -> dict:
+        rows = strategy_search(q)[:377]
+        return {"count": len(rows), "strategies": [
+            {"id": f"S{x.id:03d}", "number": x.id, "name": x.name, "family": x.section}
+            for x in rows
+        ]}
 
     # ---- AI layers + daily memory ----
     @r.get("/ai/layers")
