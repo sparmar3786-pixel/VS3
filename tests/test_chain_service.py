@@ -1,7 +1,26 @@
 import asyncio,unittest
 from backend.chain_service import *
 from backend.log_dedupe import LogDedupe
-from tests.helpers import Clock,FakeAngel,ListLogger,MemStore
+class Clock:
+ def __init__(self,t=1700000000.0): self.t=t
+ def __call__(self): return self.t
+ def advance(self,s): self.t+=s
+class ListLogger:
+ def __init__(self): self.lines=[]
+ def warning(self,msg,*args): self.lines.append(msg%args)
+ def info(self,msg,*args): self.lines.append(msg%args)
+class FakeAngel:
+ def __init__(self,delay=0): self.calls=0;self.delay=delay;self.error=None;self.payload=None;self.authed=True
+ async def get_option_chain(self,index):
+  self.calls+=1
+  if self.delay: await asyncio.sleep(self.delay)
+  if not self.authed: raise AuthError("invalid")
+  if self.error: raise self.error
+  return self.payload if self.payload is not None else {"index":index,"rows":[1,2,3]}
+class MemStore:
+ def __init__(self): self.snaps={}
+ async def save(self,index,snap): self.snaps[index]=dict(snap)
+ async def load(self,index): return self.snaps.get(index)
 def make(angel=None,store=None,clock=None,**kw):
  clock=clock or Clock();angel=angel or FakeAngel()
  logger=kw.pop("logger",ListLogger());kw.setdefault("dedupe",LogDedupe(logger,clock=clock))
