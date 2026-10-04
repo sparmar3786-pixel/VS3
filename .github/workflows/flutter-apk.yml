@@ -1,51 +1,40 @@
 name: VS3 Flutter APK
-
 on:
   workflow_dispatch:
   push:
     paths:
       - "flutter_app/**"
       - ".github/workflows/flutter-apk.yml"
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.24.5"
+          flutter-version: "3.35.7"
           channel: stable
           cache: true
-
-      - name: Create Flutter Android project
-        run: flutter create --org com.vs3 --project-name vs3_flutter --platforms android .flutter_build
-
-      - name: Install VS3 Dart UI
+      - name: Create Android shell
+        run: flutter create --org com.vs3 --project-name vs3_terminal --platforms android .flutter_build
+      - name: Install VS3 Flutter source
         run: |
           cp flutter_app/pubspec.yaml .flutter_build/pubspec.yaml
           rm -rf .flutter_build/lib
           cp -r flutter_app/lib .flutter_build/lib
-
-      - name: Get dependencies
+      - name: Dependencies
         working-directory: .flutter_build
         run: flutter pub get
-
-      - name: Analyze
+      - name: Dart analyze
         working-directory: .flutter_build
         run: flutter analyze
-
-      - name: Test
+      - name: Flutter tests
         working-directory: .flutter_build
         run: flutter test
-
       - name: Build release APK
         working-directory: .flutter_build
-        run: flutter build apk --release --dart-define=VS3_API_URL=${{ vars.VS3_API_URL || 'https://nse-algo-backend-live-production.up.railway.app' }}
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
         with:
           name: vs3-flutter-release-apk
           path: .flutter_build/build/app/outputs/flutter-apk/app-release.apk
