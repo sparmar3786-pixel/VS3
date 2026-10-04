@@ -63,14 +63,19 @@ class Settings(BaseSettings):
 
     # ---------------- data quality gate ----------------
     max_tick_age_sec: float = 5.0
-    max_snapshot_age_sec: float = 10.0
+    max_snapshot_age_sec: float = 15.0
     max_tick_jump_pct: float = 5.0
     rate_limit_rps: float = 8.0
-    engine_cycle_sec: float = 3.0
-    nse_mcp_poll_sec: float = 15.0
+    engine_cycle_sec: float = 5.0
+    nse_mcp_poll_sec: float = 30.0
     market_cache_enabled: str = "on"
     after_market_ai_interval_sec: float = 300.0
     market_cache_dir: str = "data/market_cache"
+    chain_cache_ttl_sec: float = 15.0
+    chain_stale_sec: float = 60.0
+    chain_failure_backoff_sec: float = 15.0
+    api_token_required: str = "on"
+    workers: int = 1
 
     # ---------------- indices ----------------
     indices: str = "NIFTY,BANKNIFTY,FINNIFTY,MIDCPNIFTY,SENSEX,BANKEX"
