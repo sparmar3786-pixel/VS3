@@ -1,118 +1,34 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-void main() => runApp(const VS3App());
-
-class VS3App extends StatefulWidget {
-  const VS3App({super.key});
-  @override State<VS3App> createState() => _VS3AppState();
-}
-
-class _VS3AppState extends State<VS3App> {
-  String baseUrl = const String.fromEnvironment(
-    'VS3_API_URL',
-    defaultValue: 'https://nse-algo-backend-live-production.up.railway.app',
-  );
-  String index = 'NIFTY';
-  String state = 'CONNECTING';
-  Map<String,dynamic> data = {};
-  bool loading = false;
-
-  Future<void> refresh() async {
-    if (loading) return;
-    setState(() { loading=true; state='LOADING'; });
-    try {
-      final u = Uri.parse('${baseUrl.replaceAll(RegExp(r'/\$'), '')}/v1/ai/context?index=$index');
-      final r = await http.get(u).timeout(const Duration(seconds: 10));
-      if (r.statusCode >= 200 && r.statusCode < 300) {
-        final body=jsonDecode(r.body);
-        setState(() { data=body is Map<String,dynamic> ? body : {}; state='LIVE'; });
-      } else {
-        setState(() => state='API ${r.statusCode}');
-      }
-    } catch (_) { setState(() => state='OFFLINE'); }
-    finally { if(mounted) setState(() => loading=false); }
-  }
-
-  @override void initState() { super.initState(); refresh(); }
-
-  @override Widget build(BuildContext context) => MaterialApp(
-    debugShowCheckedModeBanner:false,
-    theme: ThemeData.dark(useMaterial3:true).copyWith(
-      scaffoldBackgroundColor: const Color(0xFF070B12),
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF22C55E), brightness: Brightness.dark),
-    ),
-    home: Scaffold(
-      appBar: AppBar(
-        title: const Text('VS3 • NSE AI Terminal', style: TextStyle(fontWeight: FontWeight.w800)),
-        backgroundColor: const Color(0xFF0B111B),
-        actions:[IconButton(onPressed:refresh,icon:const Icon(Icons.refresh))],
-      ),
-      body: RefreshIndicator(
-        onRefresh: refresh,
-        child: ListView(padding:const EdgeInsets.all(14),children:[
-          _panel(Row(children:[
-            const Icon(Icons.cloud_done,color:Color(0xFF22C55E)),
-            const SizedBox(width:8),
-            Expanded(child:Text('$state  •  ${baseUrl.replaceFirst(RegExp(r'https?://'),'')}',
-              maxLines:1,overflow:TextOverflow.ellipsis)),
-          ])),
-          const SizedBox(height:12),
-          _panel(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            const Text('INDEX',style:TextStyle(fontSize:11,color:Colors.white54,fontWeight:FontWeight.bold)),
-            const SizedBox(height:8),
-            DropdownButtonFormField<String>(
-              value:index,
-              items:['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY','SENSEX','BANKEX']
-                .map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
-              onChanged:(v){if(v!=null){setState(()=>index=v);refresh();}},
-              decoration:const InputDecoration(border:OutlineInputBorder(),isDense:true),
-            ),
-          ])),
-          const SizedBox(height:12),
-          Row(children:[
-            Expanded(child:_metric('SIGNAL', _pick(['decision','signal','action']) ?? 'WAIT')),
-            const SizedBox(width:8),
-            Expanded(child:_metric('CONFIDENCE', '${_pick(['confidence','score']) ?? '--'}')),
-          ]),
-          const SizedBox(height:12),
-          _panel(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            const Text('TRADE PLAN',style:TextStyle(fontSize:12,fontWeight:FontWeight.bold,color:Colors.white70)),
-            const SizedBox(height:12),
-            Row(children:[
-              Expanded(child:_kv('STRIKE',_pick(['strike','entry_strike']) ?? '--')),
-              Expanded(child:_kv('ENTRY',_pick(['entry','entry_price']) ?? '--')),
-              Expanded(child:_kv('SL',_pick(['sl','stop_loss']) ?? '--')),
-              Expanded(child:_kv('TARGET',_pick(['target','target_price']) ?? '--')),
-            ]),
-          ])),
-          const SizedBox(height:12),
-          _panel(Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            const Text('LIVE CONTEXT',style:TextStyle(fontWeight:FontWeight.bold,color:Colors.white70)),
-            const SizedBox(height:8),
-            Text(const JsonEncoder.withIndent('  ').convert(data),
-              style:const TextStyle(fontSize:11,color:Colors.white60,fontFamily:'monospace')),
-          ])),
-        ]),
-      ),
-    ),
-  );
-
-  String? _pick(List<String> keys) {
-    for(final k in keys){ final v=data[k]; if(v!=null && v.toString().isNotEmpty) return v.toString(); }
-    return null;
-  }
-
-  Widget _panel(Widget c)=>Container(padding:const EdgeInsets.all(14),decoration:BoxDecoration(
-    color:const Color(0xFF0D1521),borderRadius:BorderRadius.circular(16),
-    border:Border.all(color:Colors.white10)),child:c);
-  Widget _metric(String a,String b)=>_panel(Column(children:[
-    Text(a,style:const TextStyle(fontSize:10,color:Colors.white54)),const SizedBox(height:6),
-    Text(b,style:const TextStyle(fontSize:22,fontWeight:FontWeight.w900))
-  ]));
-  Widget _kv(String a,String b)=>Column(children:[
-    Text(a,style:const TextStyle(fontSize:9,color:Colors.white45)),const SizedBox(height:5),
-    Text(b,style:const TextStyle(fontWeight:FontWeight.w800))
-  ]);
+void main()=>runApp(const Vs3App());
+class Vs3App extends StatefulWidget{const Vs3App({super.key});@override State<Vs3App> createState()=>_Vs3AppState();}
+class _Vs3AppState extends State<Vs3App>{
+ ThemeMode mode=ThemeMode.dark;int tab=0;String index='NIFTY 50',status='OFFLINE';Map<String,dynamic> data={};bool busy=false;
+ final url=TextEditingController(text:String.fromEnvironment('VS3_API_URL',defaultValue:''));final token=TextEditingController();
+ static const indices=['NIFTY 50','BANKNIFTY','FINNIFTY','MIDCPNIFTY','SENSEX','BANKEX'];
+ ThemeData theme(bool d)=>ThemeData(useMaterial3:true,brightness:d?Brightness.dark:Brightness.light,colorScheme:ColorScheme.fromSeed(seedColor:const Color(0xff1769e0),brightness:d?Brightness.dark:Brightness.light),scaffoldBackgroundColor:d?const Color(0xff07111d):const Color(0xfff4f7fb),cardTheme:CardThemeData(elevation:0,margin:const EdgeInsets.only(bottom:10),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(16))));
+ String apiIndex(String x)=>x=='NIFTY 50'?'NIFTY':x;
+ String val(List<String> keys){dynamic x=data;for(final k in keys){if(x is Map&&x.containsKey(k))x=x[k];else continue;if(x!=null)return x.toString();}return '—';}
+ Future<void> refresh()async{if(busy)return;var b=url.text.trim().replaceAll(RegExp(r'/+$'),'');if(b.isEmpty){setState(()=>status='URL REQUIRED');return;}setState(()=>busy=true);try{final h=<String,String>{if(token.text.trim().isNotEmpty)'x-token':token.text.trim()};final r=await http.get(Uri.parse(b+'/v1/ai/context?index='+Uri.encodeQueryComponent(apiIndex(index))),headers:h).timeout(const Duration(seconds:12));dynamic j;try{j=jsonDecode(r.body);}catch(_){ }setState(()=>{status=r.statusCode>=200&&r.statusCode<300?'LIVE':'API '+r.statusCode.toString(),data=j is Map?Map<String,dynamic>.from(j):{}});}catch(_){setState(()=>status='OFFLINE');}finally{if(mounted)setState(()=>busy=false);}}
+ @override void initState(){super.initState();if(url.text.isNotEmpty)refresh();}
+ @override Widget build(BuildContext context)=>MaterialApp(debugShowCheckedModeBanner:false,title:'VS3 NSE AI Terminal',theme:theme(false),darkTheme:theme(true),themeMode:mode,home:Scaffold(
+ appBar:AppBar(title:Row(children:[logo(31),const SizedBox(width:8),const Text('VS3 • NSE AI TERMINAL',style:TextStyle(fontWeight:FontWeight.w900))]),actions:[Padding(padding:const EdgeInsets.only(right:4),child:Chip(label:Text(status))),IconButton(onPressed:()=>setState(()=>mode=mode==ThemeMode.dark?ThemeMode.light:ThemeMode.dark),icon:Icon(mode==ThemeMode.dark?Icons.light_mode:Icons.dark_mode))]),
+ drawer:Drawer(child:SafeArea(child:ListView(padding:const EdgeInsets.all(12),children:[logo(62),const SizedBox(height:10),const Text('VS3 Trading Terminal',style:TextStyle(fontSize:20,fontWeight:FontWeight.w900)),const Text('Live analysis • order placement disabled'),const Divider(),...['Dashboard','Option Chain','Trade Plans','6-Layer AI','Charts / Indicators','Angel One / Backend','Settings'].asMap().entries.map((e)=>ListTile(selected:tab==e.key,leading:Icon([Icons.dashboard,Icons.table_chart,Icons.bolt,Icons.auto_awesome,Icons.candlestick_chart,Icons.link,Icons.settings][e.key]),title:Text(e.value),onTap:(){Navigator.pop(context);setState(()=>tab=e.key);})),]))),
+ body:SafeArea(child:page()),bottomNavigationBar:NavigationBar(selectedIndex:tab<5?tab:4,onDestinationSelected:(i)=>setState(()=>tab=i),destinations:const[NavigationDestination(icon:Icon(Icons.dashboard_outlined),label:'Home'),NavigationDestination(icon:Icon(Icons.table_chart_outlined),label:'Chain'),NavigationDestination(icon:Icon(Icons.bolt_outlined),label:'Signals'),NavigationDestination(icon:Icon(Icons.auto_awesome),label:'AI'),NavigationDestination(icon:Icon(Icons.more_horiz),label:'More')]))));
+ Widget page()=>switch(tab){0=>dashboard(),1=>chain(),2=>signals(),3=>ai(),_=>more()};
+ Widget dashboard()=>ListView(padding:const EdgeInsets.all(14),children:[header('Market Dashboard','Verified live data only'),indexSelector(),grid([['Backend',status,'Feed'],['Index',index,'Selected'],['Signal',val(['decision','signal','action'])=='—'?'WAIT':val(['decision','signal','action']),'Gate'],['Confidence',val(['confidence','score']),'AI']]),verdict('WAIT','CALL/PUT entries require complete live data-quality gates',Colors.orange),section('42-point analysis pipeline'),chips(['Data','Quality','Regime','Price','EMA 8/13','VWAP','RSI','MACD','ATR','OI','Premium','Risk','AI','Decision']),section('OI classification'),oi('LONG BUILDUP','Premium ↑ + OI ↑'),oi('SHORT BUILDUP','Premium ↓ + OI ↑'),oi('SHORT COVERING','Premium ↑ + OI ↓'),oi('LONG UNWINDING','Premium ↓ + OI ↓')]);
+ Widget chain()=>ListView(padding:const EdgeInsets.all(14),children:[header('Option Chain','CALL / PUT • OI + premium evidence'),indexSelector(),chips(['CE','PE','OI','Volume','Change OI','PCR']),Card(child:SingleChildScrollView(scrollDirection:Axis.horizontal,child:DataTable(columns:const[DataColumn(label:Text('STRIKE')),DataColumn(label:Text('CE LTP')),DataColumn(label:Text('CE OI')),DataColumn(label:Text('PE LTP')),DataColumn(label:Text('PE OI')),DataColumn(label:Text('Δ OI'))],rows:List.generate(9,(i)=>const DataRow(cells:[DataCell(Text('—')),DataCell(Text('—')),DataCell(Text('—')),DataCell(Text('—')),DataCell(Text('—')),DataCell(Text('—'))]))))),info('Missing/stale OI or volume blocks fresh CALL/PUT entries.',Icons.shield)]);
+ Widget signals()=>ListView(padding:const EdgeInsets.all(14),children:[header('Trade Plans','Deterministic gate + AI validation'),verdict('CALL BUY','Only after CALL qualification + every gate passes',Colors.green),verdict('PUT BUY','Only after PUT qualification + every gate passes',Colors.red),verdict('WAIT','Conflict / uncertainty / weak confirmation',Colors.orange),verdict('NO TRADE','Data gap or incomplete qualifying setup',Colors.grey),grid([['Strike','—','Live'],['Entry','—','Live'],['SL','—','Risk'],['Target','—','Risk'],['R:R','—','Gate'],['Confidence','—','AI']])]);
+ Widget ai()=>ListView(padding:const EdgeInsets.all(14),children:[header('6-Layer AI','Validation only — never invents strike, entry, SL or target'),...['L1 Data Quality','L2 Market Regime','L3 OI / Premium','L4 Risk / R:R','L5 Cross-check','L6 Final Guard'].map((x)=>Card(child:ListTile(leading:const Icon(Icons.auto_awesome),title:Text(x,style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:const Text('WAIT • verified evidence required'),trailing:const Chip(label:Text('VALIDATE'))))),info('AI cannot bypass deterministic data-quality safety gates.',Icons.security)]);
+ Widget more()=>ListView(padding:const EdgeInsets.all(14),children:[header('Charts & Backend','Live connection controls'),indexSelector(),Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(children:[TextField(controller:url,decoration:const InputDecoration(labelText:'Backend URL',hintText:'https://your-vs3-backend.example',prefixIcon:Icon(Icons.link))),const SizedBox(height:8),TextField(controller:token,obscureText:true,decoration:const InputDecoration(labelText:'API token',prefixIcon:Icon(Icons.key))),const SizedBox(height:10),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:refresh,icon:const Icon(Icons.cloud_sync),label:Text(busy?'CONNECTING…':'TEST BACKEND')))]))),grid([['Angel One','Server-side','Credentials'],['NSE MCP','Server-side','Data'],['Order placement','Disabled','Safety'],['Mode','Live only','Rule']]),section('Indicators'),chips(['EMA 8','EMA 13','VWAP','RSI','MACD','ATR','Bollinger','Supertrend','Pivot','CPR','Fibonacci'])]);
+ Widget indexSelector()=>SizedBox(height:46,child:ListView(scrollDirection:Axis.horizontal,children:indices.map((x)=>Padding(padding:const EdgeInsets.only(right:7),child:ChoiceChip(label:Text(x),selected:index==x,onSelected:(_){setState(()=>index=x);refresh();}))).toList()));
+ Widget header(String a,String b)=>Padding(padding:const EdgeInsets.only(bottom:12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(a,style:const TextStyle(fontSize:25,fontWeight:FontWeight.w900)),Text(b,style:TextStyle(color:Theme.of(context).colorScheme.onSurfaceVariant))]));
+ Widget grid(List<List<String>> r)=>GridView.count(crossAxisCount:2,shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),crossAxisSpacing:8,mainAxisSpacing:8,childAspectRatio:2.25,children:r.map((x)=>Card(child:Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisAlignment:MainAxisAlignment.center,children:[Text(x[0],style:const TextStyle(fontSize:11)),Text(x[1],style:const TextStyle(fontSize:17,fontWeight:FontWeight.w900)),Text(x[2],style:const TextStyle(fontSize:10))])))).toList());
+ Widget verdict(String t,String d,Color c)=>Card(child:Container(padding:const EdgeInsets.all(13),decoration:BoxDecoration(borderRadius:BorderRadius.circular(16),border:Border(left:BorderSide(color:c,width:5))),child:Row(children:[Icon(Icons.circle,color:c,size:12),const SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(t,style:TextStyle(color:c,fontWeight:FontWeight.w900)),Text(d)]))])));
+ Widget oi(String a,String b)=>Card(child:ListTile(leading:const Icon(Icons.show_chart),title:Text(a,style:const TextStyle(fontWeight:FontWeight.w800)),subtitle:Text(b)));
+ Widget chips(List<String> x)=>Wrap(spacing:6,runSpacing:6,children:x.map((s)=>Chip(label:Text(s,style:const TextStyle(fontSize:10)))).toList());
+ Widget section(String x)=>Padding(padding:const EdgeInsets.fromLTRB(2,10,2,8),child:Text(x,style:const TextStyle(fontWeight:FontWeight.w900)));
+ Widget info(String x,IconData i)=>Card(child:ListTile(leading:Icon(i),title:Text(x)));
+ Widget logo(double s)=>Container(width:s,height:s,decoration:BoxDecoration(borderRadius:BorderRadius.circular(s*.22),gradient:const LinearGradient(colors:[Color(0xff1769e0),Color(0xff14c984)])),child:Icon(Icons.candlestick_chart,size:s*.5,color:Colors.white));
 }
