@@ -21,7 +21,8 @@ _frontend = ROOT / "frontend"
 
 app.include_router(build_router(lambda: getattr(__import__("backend.main", fromlist=["state"]), "state").engine), prefix="")
 app.include_router(build_platform_router())
-app.include_router(v1_router)
+app.include_router(v1_router, prefix="")
+# Explicit contract assertion at startup is intentionally avoided; the router owns the /v1 prefix.
 
 _recorder_task: asyncio.Task | None = None
 
