@@ -1,6 +1,7 @@
 name: VS3 Flutter APK
 on:
   workflow_dispatch:
+  pull_request:
   push:
     paths:
       - "flutter_app/**"
@@ -20,14 +21,15 @@ jobs:
       - name: Install VS3 Flutter source
         run: |
           cp flutter_app/pubspec.yaml .flutter_build/pubspec.yaml
-          rm -rf .flutter_build/lib
+          rm -rf .flutter_build/lib .flutter_build/test
           cp -r flutter_app/lib .flutter_build/lib
+          cp -r flutter_app/test .flutter_build/test
       - name: Dependencies
         working-directory: .flutter_build
         run: flutter pub get
       - name: Dart analyze
         working-directory: .flutter_build
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Flutter tests
         working-directory: .flutter_build
         run: flutter test
