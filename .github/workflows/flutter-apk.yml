@@ -21,8 +21,9 @@ jobs:
       - name: Install VS3 Flutter source
         run: |
           cp flutter_app/pubspec.yaml .flutter_build/pubspec.yaml
-          rm -rf .flutter_build/lib
+          rm -rf .flutter_build/lib .flutter_build/test
           cp -r flutter_app/lib .flutter_build/lib
+          cp -r flutter_app/test .flutter_build/test
       - name: Dependencies
         working-directory: .flutter_build
         run: flutter pub get
