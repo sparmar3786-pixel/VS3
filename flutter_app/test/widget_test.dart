@@ -17,8 +17,12 @@ void main() {
   ) async {
     await tester.pumpWidget(const FinalTerminalDesign());
     expect(find.text('NSE-AI-TERMINAL'), findsWidgets);
-    await openPage(tester, 'Angel One API');
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('29. Angel One API'));
+    await tester.pumpAndSettle();
     expect(find.text('Backend URL'), findsWidgets);
+    expect(find.text('Access Token'), findsWidgets);
   });
 
   for (final backend in [
@@ -37,7 +41,10 @@ void main() {
       await http.runWithClient(
         () async {
           await tester.pumpWidget(const FinalTerminalDesign());
-          await openPage(tester, 'Angel One API');
+          await tester.tap(find.byIcon(Icons.menu));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('29. Angel One API'));
+          await tester.pumpAndSettle();
           await tester.enterText(find.byType(TextField).at(0), backend);
           await tester.enterText(
             find.byType(TextField).at(1),
