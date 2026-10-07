@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+void main()=>runApp(const FinalTerminalDesign());
+
 class FinalTerminalDesign extends StatefulWidget {
   const FinalTerminalDesign({super.key});
   @override State<FinalTerminalDesign> createState()=>_FinalTerminalDesignState();
