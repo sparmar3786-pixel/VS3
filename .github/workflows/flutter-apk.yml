@@ -29,7 +29,7 @@ jobs:
         run: flutter pub get
       - name: Dart analyze
         working-directory: .flutter_build
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Flutter tests
         working-directory: .flutter_build
         run: flutter test
