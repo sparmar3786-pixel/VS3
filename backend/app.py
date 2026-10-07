@@ -21,8 +21,11 @@ _frontend = ROOT / "frontend"
 
 app.include_router(build_router(lambda: getattr(__import__("backend.main", fromlist=["state"]), "state").engine), prefix="")
 app.include_router(build_platform_router())
-app.include_router(v1_router, prefix="")
-# Explicit contract assertion at startup is intentionally avoided; the router owns the /v1 prefix.
+# Mount the compatibility router directly on the application's route table.
+# This preserves the router's /v1 prefix and guarantees both HTTP and WebSocket
+# contract routes are visible through app.routes (including test/runtime introspection).
+if not any(getattr(route, "path", None) == "/v1/angel/status" for route in app.router.routes):
+    app.router.routes.extend(v1_router.routes)
 
 _recorder_task: asyncio.Task | None = None
 
