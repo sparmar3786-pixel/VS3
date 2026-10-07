@@ -120,10 +120,21 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     return token.isEmpty?const <String,String>{}:<String,String>{'x-token':token};
   }
 
-  Future<void> _connectBackend() async {
+  String? _validatedBackendUrl(){
     var base=backendUrl.trim();
     while(base.endsWith('/')) base=base.substring(0,base.length-1);
-    if(base.isEmpty){setState(()=>apiStatus='Enter backend URL first');return;}
+    if(base.isEmpty){setState(()=>apiStatus='Enter backend URL first');return null;}
+    final uri=Uri.tryParse(base);
+    if(uri==null || uri.scheme!='https' || uri.host.isEmpty){
+      setState(()=>apiStatus='Backend URL must use HTTPS with a valid host');
+      return null;
+    }
+    return base;
+  }
+
+  Future<void> _connectBackend() async {
+    final base=_validatedBackendUrl();
+    if(base==null)return;
     try{
       final r=await http.get(Uri.parse(base+'/v1/angel/status'),headers:_authHeaders()).timeout(const Duration(seconds:12));
       final j=jsonDecode(r.body) as Map<String,dynamic>;
@@ -133,9 +144,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   }
 
   Future<void> _loadCandles() async {
-    var base=backendUrl.trim();
-    while(base.endsWith('/')) base=base.substring(0,base.length-1);
-    if(base.isEmpty)return;
+    final base=_validatedBackendUrl();
+    if(base==null){setState(()=>candles=[]);return;}
     try{
       final url=base+'/v1/angel/candles/'+Uri.encodeComponent(_apiIndex(selectedIndex))+'?interval='+selectedTimeframe+'&days=5';
       final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:15));
@@ -148,9 +158,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   }
 
   Future<void> _searchStrategies(String q) async {
-    var base=backendUrl.trim();
-    while(base.endsWith('/')) base=base.substring(0,base.length-1);
-    if(base.isEmpty){setState(()=>strategyResults=[]);return;}
+    final base=_validatedBackendUrl();
+    if(base==null){setState(()=>strategyResults=[]);return;}
     try{
       final url=base+'/v1/strategies?q='+Uri.encodeQueryComponent(q)+'&limit=100';
       final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:10));
