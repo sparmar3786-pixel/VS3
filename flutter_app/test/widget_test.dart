@@ -6,5 +6,6 @@ void main() {
   testWidgets('NSE-AI-TERMINAL launches with dashboard branding', (tester) async {
     await tester.pumpWidget(const FinalTerminalDesign());
     expect(find.text('NSE-AI-TERMINAL'), findsWidgets);
+    expect(find.text('Backend URL'), findsWidgets);
   });
 }
