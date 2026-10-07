@@ -12,14 +12,15 @@ class FinalTerminalDesign extends StatefulWidget {
 class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   ThemeMode mode=ThemeMode.light;
   int tab=0;
-  String backendUrl='';
+  String backendUrl='https://nse-algo-backend-live-production.up.railway.app';
   String selectedIndex='NIFTY 50';
   String selectedTimeframe='FIVE_MINUTE';
   final Set<String> selectedIndicators={'EMA 8','EMA 13','VWAP','RSI','MACD','ATR','Bollinger'};
   List<Map<String,dynamic>> candles=[];
   List<Map<String,dynamic>> strategyResults=[];
   String apiStatus='Backend URL required';
-  final TextEditingController backendController=TextEditingController();
+  final TextEditingController backendController=TextEditingController(text:'https://nse-algo-backend-live-production.up.railway.app');
+  final TextEditingController accessTokenController=TextEditingController();
   // 30-screen reference layout from the supplied NSE-AI-TERMINAL design.
   // Core live-data screens are preserved; no order-placement screen is exposed.
   static const pages=<String>[
@@ -114,12 +115,17 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
 
   String _apiIndex(String x)=>x.replaceAll(' ','')=='NIFTY50'?'NIFTY':x.replaceAll(' ','').toUpperCase();
 
+  Map<String,String> _authHeaders(){
+    final token=accessTokenController.text.trim();
+    return token.isEmpty?const <String,String>{}:<String,String>{'x-token':token};
+  }
+
   Future<void> _connectBackend() async {
     var base=backendUrl.trim();
     while(base.endsWith('/')) base=base.substring(0,base.length-1);
     if(base.isEmpty){setState(()=>apiStatus='Enter backend URL first');return;}
     try{
-      final r=await http.get(Uri.parse(base+'/v1/angel/status'),headers:{'x-token':'change-me'}).timeout(const Duration(seconds:12));
+      final r=await http.get(Uri.parse(base+'/v1/angel/status'),headers:_authHeaders()).timeout(const Duration(seconds:12));
       final j=jsonDecode(r.body) as Map<String,dynamic>;
       setState(()=>apiStatus=r.statusCode<300 && j['connected']==true?'Angel One connected':'Connection failed');
       if(r.statusCode<300) await _loadCandles();
@@ -132,7 +138,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     if(base.isEmpty)return;
     try{
       final url=base+'/v1/angel/candles/'+Uri.encodeComponent(_apiIndex(selectedIndex))+'?interval='+selectedTimeframe+'&days=5';
-      final r=await http.get(Uri.parse(url)).timeout(const Duration(seconds:15));
+      final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:15));
       if(r.statusCode<300){
         final j=jsonDecode(r.body) as Map<String,dynamic>;
         final rows=(j['rows'] as List? ?? const[]);
@@ -147,7 +153,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     if(base.isEmpty){setState(()=>strategyResults=[]);return;}
     try{
       final url=base+'/v1/strategies?q='+Uri.encodeQueryComponent(q)+'&limit=100';
-      final r=await http.get(Uri.parse(url)).timeout(const Duration(seconds:10));
+      final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:10));
       if(r.statusCode<300){
         final j=jsonDecode(r.body) as Map<String,dynamic>;
         setState(()=>strategyResults=(j['strategies'] as List? ?? const[]).whereType<Map>().map((x)=>Map<String,dynamic>.from(x)).toList());
@@ -250,6 +256,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
 
   Widget _angelApi()=>Column(children:[
     TextField(controller:backendController,decoration:const InputDecoration(labelText:'Backend URL',hintText:'https://your-server.example',prefixIcon:Icon(Icons.link)),onChanged:(v)=>backendUrl=v),
+    const SizedBox(height:8),
+    TextField(controller:accessTokenController,obscureText:true,autocorrect:false,enableSuggestions:false,decoration:const InputDecoration(labelText:'Access Token',hintText:'Paste backend access token',prefixIcon:Icon(Icons.key),helperText:'Token is sent as x-token to your backend.')),
     const SizedBox(height:8),
     FilledButton.icon(onPressed:_connectBackend,icon:const Icon(Icons.login),label:const Text('CONNECT ANGEL ONE LIVE')),
     const SizedBox(height:8),
