@@ -3,6 +3,7 @@
 Read-only market analysis only. No order-placement endpoint is exposed.
 """
 from __future__ import annotations
+import asyncio
 import csv
 import io
 import time
@@ -13,6 +14,9 @@ from fastapi.responses import Response
 from backend.config import get_settings
 from backend.live_api import _from_snap, _jwt_exp
 from backend.main import state
+from backend.nse_mcp import NSEMCP, result_to_csv
+
+_official_nse_mcp = NSEMCP()
 
 def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
                        authorization: str = Header(default="")) -> None:
@@ -127,34 +131,53 @@ async def angel_option_chain(symbol: str = "NIFTY", count: int = 40, expiry: Opt
 
 @router.get("/nse/mcp/tools")
 async def mcp_tools() -> dict:
-    return {"enabled": get_settings().mcp_on, "count": len(MCP_TOOLS),
-            "tools": [{"name": x} for x in MCP_TOOLS]}
+    try:
+        tools = await asyncio.to_thread(_official_nse_mcp.tools)
+        return {"enabled": True, "connected": True, "endpoint": _official_nse_mcp.url,
+                "count": len(tools),
+                "tools": [{"name": t.get("name"), "description": t.get("description")} for t in tools]}
+    except Exception as exc:
+        return {"enabled": get_settings().mcp_on, "connected": False, "endpoint": _official_nse_mcp.url,
+                "count": 0, "tools": [], "error": str(exc)[:500]}
 
 @router.get("/nse/mcp/context")
 async def mcp_context(symbol: str = "NIFTY") -> dict:
     key = symbol.upper().replace(" ", "")
-    snap = state.engine._mcp_snapshots.get(key)
-    updated = state.engine._mcp_updated.get(key)
-    if snap is None:
-        return {"symbol": key, "connected": False, "pending": True, "source": "nse_mcp"}
-    data = _from_snap(snap, [])
-    if updated is not None:
-        data["age_sec"] = max(0.0, time.time() - updated)
-    return {"symbol": key, "connected": True, "source": "nse_mcp", "data": data}
+    try:
+        data = await asyncio.to_thread(_official_nse_mcp.context, key)
+        data["symbol"] = key
+        data["source"] = "official_nse_streamable_http"
+        data["fetched_at"] = time.time()
+        return data
+    except Exception as exc:
+        snap = state.engine._mcp_snapshots.get(key)
+        updated = state.engine._mcp_updated.get(key)
+        if snap is not None:
+            data = _from_snap(snap, [])
+            if updated is not None:
+                data["age_sec"] = max(0.0, time.time() - updated)
+            return {"symbol": key, "connected": True, "source": "nse_mcp_cache", "data": data}
+        return {"symbol": key, "connected": False, "pending": True, "source": "official_nse_streamable_http",
+                "error": str(exc)[:500]}
 
 @router.get("/nse/option-chain.csv")
 async def nse_option_chain_csv(symbol: str = "NIFTY", expiry: Optional[str] = None) -> Response:
     key = symbol.upper().replace(" ", "")
-    snap = state.engine._mcp_snapshots.get(key) or state.engine.latest_snapshot(key)
-    if snap is None:
-        raise HTTPException(503, "option chain is not available yet")
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow(["symbol","expiry","spot","strike","type","ltp","oi","oi_change","volume","iv","source"])
-    for row in _rows(snap, 200):
-        w.writerow([key,snap.expiry,snap.spot,row["strike"],row["type"],row["ltp"],row["oi"],
-                    row["oiChg"],row["volume"],row["iv"],snap.source])
-    return Response(buf.getvalue(), media_type="text/csv")
+    try:
+        _tool, result = await asyncio.to_thread(_official_nse_mcp.option_chain, key, expiry)
+        return Response(result_to_csv(result), media_type="text/csv",
+                        headers={"X-NSE-MCP-Tool": str(_tool)})
+    except Exception as exc:
+        snap = state.engine._mcp_snapshots.get(key) or state.engine.latest_snapshot(key)
+        if snap is None:
+            raise HTTPException(503, "NSE MCP option chain unavailable: " + str(exc)[:300])
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["symbol","expiry","spot","strike","type","ltp","oi","oi_change","volume","iv","source"])
+        for row in _rows(snap, 200):
+            w.writerow([key,snap.expiry,snap.spot,row["strike"],row["type"],row["ltp"],row["oi"],
+                        row["oiChg"],row["volume"],row["iv"],snap.source])
+        return Response(buf.getvalue(), media_type="text/csv")
 
 @router.get("/ai/context")
 async def ai_context(index: str = "NIFTY") -> dict:
@@ -162,6 +185,10 @@ async def ai_context(index: str = "NIFTY") -> dict:
     ctx = state.engine.latest_context(key)
     snap = state.engine.latest_snapshot(key)
     mcp = state.engine._mcp_snapshots.get(key)
+    try:
+        mcp = await asyncio.to_thread(_official_nse_mcp.context, key)
+    except Exception:
+        pass
     return {
         "index": key,
         "market_open": bool(ctx and ctx.get("market_open")),
