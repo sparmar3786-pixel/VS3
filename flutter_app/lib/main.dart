@@ -278,7 +278,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
 
   Widget _ai()=>Column(children:[
     _info('Puter.js login + AI validation is opened securely from the backend origin. The deterministic engine remains the source of CALL/PUT/WAIT/NO TRADE.',Icons.lock_open),
-    FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>PuterAiScreen(backendUrl:backendUrl))),icon:const Icon(Icons.auto_awesome),label:const Text('SIGN IN WITH PUTER + VALIDATE MARKET')),
+    FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>PuterAiScreen(backendUrl:backendUrl))),icon:const Icon(Icons.auto_awesome),label:const Text('SIGN IN WITH PUTER + RUN 6-LAYER VALIDATION')),
     const SizedBox(height:8),
     ...['L1 • GPT-5.6 Luna','L2 • Claude Sonnet 4.6','L3 • GPT-5.6 Sol','L4 • DeepSeek Chat','L5 • Gemini 2.5 Flash','L6 • Grok 4']
       .map((x)=>_row(x,'AGREE','Validation only')),
