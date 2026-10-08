@@ -28,3 +28,5 @@ void main() {
     expect(find.text('NSE MCP'), findsOneWidget);
   });
 }
+
+// CI smoke-test file intentionally kept simple for release APK verification.
