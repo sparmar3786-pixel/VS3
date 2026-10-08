@@ -15,8 +15,11 @@ from backend.config import get_settings
 from backend.live_api import _from_snap, _jwt_exp
 from backend.main import state
 from backend.nse_mcp import NSEMCP, result_to_csv
+from backend.groww_client import GrowwClient, GrowwError
+from backend.signal_engine import build_signal
 
 _official_nse_mcp = NSEMCP()
+_groww_default = GrowwClient(get_settings().groww_access_token)
 
 def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
                        authorization: str = Header(default="")) -> None:
@@ -198,6 +201,82 @@ async def ai_context(index: str = "NIFTY") -> dict:
         "ai_enabled": get_settings().ai_on,
         "read_only": True,
     }
+
+@router.get("/groww/status")
+async def groww_status(x_groww_token: str = Header(default="", alias="x-groww-token")) -> dict:
+    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
+    return GrowwClient(token).status()
+
+@router.get("/groww/market")
+async def groww_market(
+    symbol: str = "NIFTY",
+    segment: str = "CASH",
+    x_groww_token: str = Header(default="", alias="x-groww-token"),
+) -> dict:
+    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
+    try:
+        return GrowwClient(token).quote("NSE", segment.upper(), symbol.upper())
+    except Exception as exc:
+        raise HTTPException(502, f"Groww quote failed ({type(exc).__name__})")
+
+@router.get("/groww/option-chain")
+async def groww_option_chain(
+    underlying: str = "NIFTY",
+    expiry: str = "",
+    exchange: str = "NSE",
+    x_groww_token: str = Header(default="", alias="x-groww-token"),
+) -> dict:
+    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
+    if not expiry:
+        raise HTTPException(400, "expiry is required (YYYY-MM-DD)")
+    try:
+        return GrowwClient(token).option_chain(exchange.upper(), underlying.upper(), expiry)
+    except Exception as exc:
+        raise HTTPException(502, f"Groww option chain failed ({type(exc).__name__})")
+
+@router.get("/market/compare")
+async def market_compare(
+    symbol: str = "NIFTY",
+    x_groww_token: str = Header(default="", alias="x-groww-token"),
+) -> dict:
+    key = symbol.upper().replace(" ", "")
+    out = {"symbol": key, "sources": {}, "validation": {"same_symbol": True}}
+    try:
+        out["sources"]["nse_mcp"] = await asyncio.to_thread(_official_nse_mcp.context, key)
+        out["sources"]["nse_mcp"]["delay_note"] = "Official NSE CM Market Live is described by NSE as running 1-3 minutes behind real-time; this is not guaranteed to be exactly 3 minutes."
+    except Exception as exc:
+        out["sources"]["nse_mcp"] = {"connected": False, "error": str(exc)[:300]}
+    src = state.engine._source
+    if src is not None and getattr(src, "jwt", None):
+        try:
+            tick = await src.get_quote(key, token=key)
+            out["sources"]["angel_one"] = tick.model_dump(mode="json") if hasattr(tick, "model_dump") else dict(tick)
+        except Exception as exc:
+            out["sources"]["angel_one"] = {"connected": False, "error": str(exc)[:300]}
+    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
+    if token:
+        try:
+            out["sources"]["groww"] = GrowwClient(token).quote("NSE", "CASH", key)
+        except Exception as exc:
+            out["sources"]["groww"] = {"connected": False, "error": str(exc)[:300]}
+    out["policy"] = "Angel One/Groww are primary live broker validation sources; NSE MCP is delayed validation/reference data. No source alone can authorize a trade."
+    return out
+
+@router.get("/signal/validate")
+async def signal_validate(symbol: str = "NIFTY") -> dict:
+    key = symbol.upper().replace(" ", "")
+    snap = state.engine.latest_snapshot(key)
+    source = getattr(snap, "source", "unknown") if snap is not None else "unknown"
+    result = build_signal(
+        snap,
+        source=source,
+        max_age_sec=get_settings().delayed_source_max_age_sec,
+        min_rr=get_settings().min_rr,
+    )
+    result["strategy_gate"] = "Run60 + Run93 deterministic evidence first"
+    result["ai_role"] = "Puter.js validates/explains this result; AI cannot override missing/stale data."
+    result["nse_delay_sec_config"] = get_settings().nse_public_delay_sec
+    return result
 
 @router.get("/terminal")
 async def terminal() -> dict:

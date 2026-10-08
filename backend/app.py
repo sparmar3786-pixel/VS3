@@ -57,3 +57,7 @@ async def terminal_page() -> FileResponse:
 @app.get("/", include_in_schema=False)
 async def root_page() -> FileResponse:
     return FileResponse(_frontend / "terminal.html", media_type="text/html")
+
+@app.get("/puter-ai.html", include_in_schema=False)
+async def puter_ai_page() -> FileResponse:
+    return FileResponse(_frontend / "puter_ai.html", media_type="text/html")
