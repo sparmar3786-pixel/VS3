@@ -22,7 +22,11 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   String apiStatus='Backend URL required';
   final TextEditingController backendController=TextEditingController(text:'https://nse-algo-backend-live-production.up.railway.app');
   final TextEditingController accessTokenController=TextEditingController();
-  final TextEditingController growwTokenController=TextEditingController();
+  final TextEditingController loginClientController=TextEditingController();
+  final TextEditingController loginPinController=TextEditingController();
+  final TextEditingController loginTotpController=TextEditingController();
+  String mcpStatus='NSE MCP not checked';
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   // 30-screen reference layout from the supplied NSE-AI-TERMINAL design.
   // Core live-data screens are preserved; no order-placement screen is exposed.
   static const pages=<String>[
@@ -38,9 +42,13 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   @override Widget build(BuildContext context)=>MaterialApp(
     debugShowCheckedModeBanner:false,title:'NSE-AI-TERMINAL',themeMode:mode,
     theme:_theme(false),darkTheme:_theme(true),
-    home:Builder(builder:(context)=>Scaffold(
+    home:Scaffold(
+      key:_scaffoldKey,
       appBar:AppBar(
-        leading:IconButton(icon:const Icon(Icons.menu),onPressed:()=>Scaffold.of(context).openDrawer()),
+        leading:IconButton(
+          icon:const Icon(Icons.menu),
+          onPressed:()=>_scaffoldKey.currentState?.openDrawer(),
+        ),
         title:Row(children:[_logo(32),const SizedBox(width:8),const Expanded(child:Text('NSE-AI-TERMINAL'))]),
         actions:[const Chip(label:Text('LIVE')),PopupMenuButton<String>(
           onSelected:(v){setState(()=>tab=v=='ai'?13:v=='search'?29:v=='chart'?16:28);},
@@ -53,7 +61,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
           onPressed:()=>setState(()=>mode=mode==ThemeMode.dark?ThemeMode.light:ThemeMode.dark),
           icon:Icon(mode==ThemeMode.dark?Icons.light_mode:Icons.dark_mode))]
       ),
-      drawer:_drawer(context),body:_page(tab),
+      drawer:_drawer(),
+      body:_page(tab),
       bottomNavigationBar:NavigationBar(
         selectedIndex:tab==2?0:tab==4?1:tab==10?2:tab==15?3:4,
         onDestinationSelected:(i)=>setState(()=>tab=[2,4,10,15,14][i]),
@@ -62,7 +71,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
           NavigationDestination(icon:Icon(Icons.table_chart_outlined),label:'Chain'),
           NavigationDestination(icon:Icon(Icons.bolt_outlined),label:'Signals'),
           NavigationDestination(icon:Icon(Icons.account_balance_wallet_outlined),label:'Portfolio'),
-          NavigationDestination(icon:Icon(Icons.more_horiz),label:'More')]))));
+          NavigationDestination(icon:Icon(Icons.more_horiz),label:'More')])));
 
   ThemeData _theme(bool dark)=>ThemeData(
     useMaterial3:true,brightness:dark?Brightness.dark:Brightness.light,
@@ -72,15 +81,15 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
       margin:const EdgeInsets.only(bottom:10),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15))),
     navigationBarTheme:NavigationBarThemeData(backgroundColor:dark?const Color(0xff0e1a29):Colors.white));
 
-  Drawer _drawer(BuildContext context)=>Drawer(child:SafeArea(child:Column(children:[
+  Drawer _drawer()=>Drawer(child:SafeArea(child:Column(children:[
     Padding(padding:const EdgeInsets.all(18),child:Row(children:[_logo(44),const SizedBox(width:10),
       const Expanded(child:Text('NSE-AI-TERMINAL\n42-point • 377 modules',style:TextStyle(fontWeight:FontWeight.w800)))])),
     SwitchListTile(title:const Text('Dark mode'),value:mode==ThemeMode.dark,
       onChanged:(v)=>setState(()=>mode=v?ThemeMode.dark:ThemeMode.light)),const Divider(),
-    Expanded(child:ListView.builder(itemCount:pages.length,itemBuilder:(_,i)=>ListTile(
+    Expanded(child:ListView.builder(itemCount:pages.length,itemBuilder:(ctx,i)=>ListTile(
       dense:true,selected:tab==i,leading:Icon(_icons[i]),
       title:Text((i+1).toString()+'. '+pages[i]),
-      onTap:(){Navigator.pop(context);setState(()=>tab=i);}))),
+      onTap:(){Navigator.pop(ctx);setState(()=>tab=i);}))),
     const Padding(padding:EdgeInsets.all(12),child:Text('Live data only • Order placement unavailable • Secrets server-side',style:TextStyle(fontSize:11)))
   ])));
 
@@ -108,12 +117,18 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     const SizedBox(height:10),const Text('LIVE DATA ONLY • CONNECTION REQUIRED')]);
 
   Widget _login()=>Column(children:[
-    _info('Angel One credentials stay server-side',Icons.lock),
-    const TextField(decoration:InputDecoration(labelText:'Client ID',prefixIcon:Icon(Icons.person))),
-    const SizedBox(height:8),const TextField(obscureText:true,decoration:InputDecoration(labelText:'PIN',prefixIcon:Icon(Icons.password))),
-    const SizedBox(height:8),const TextField(decoration:InputDecoration(labelText:'TOTP',prefixIcon:Icon(Icons.verified_user))),
-    const SizedBox(height:10),FilledButton(onPressed:()=>setState(()=>tab=2),child:const Text('CONNECT')),
-    const SizedBox.shrink()]);
+    _info('Angel One credentials are sent only to your configured backend. API key stays server-side.',Icons.lock),
+    TextField(controller:loginClientController,autocorrect:false,decoration:const InputDecoration(labelText:'Client ID',prefixIcon:Icon(Icons.person))),
+    const SizedBox(height:8),
+    TextField(controller:loginPinController,obscureText:true,autocorrect:false,enableSuggestions:false,decoration:const InputDecoration(labelText:'PIN',prefixIcon:Icon(Icons.password))),
+    const SizedBox(height:8),
+    TextField(controller:loginTotpController,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'TOTP',prefixIcon:Icon(Icons.verified_user))),
+    const SizedBox(height:10),
+    FilledButton.icon(onPressed:_loginAngel,icon:const Icon(Icons.login),label:const Text('CONNECT ANGEL ONE')),
+    const SizedBox(height:8),
+    _row('Angel One','SmartAPI session',apiStatus),
+    _row('NSE MCP','Official CM Market MCP',mcpStatus),
+  ]);
 
   String _apiIndex(String x)=>x.replaceAll(' ','')=='NIFTY50'?'NIFTY':x.replaceAll(' ','').toUpperCase();
 
@@ -138,11 +153,55 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     final base=_validatedBackendUrl();
     if(base==null)return;
     try{
+      final health=await http.get(Uri.parse(base+'/health')).timeout(const Duration(seconds:10));
+      if(health.statusCode<200 || health.statusCode>=300){
+        setState(()=>apiStatus='Backend HTTP ${health.statusCode}');
+        return;
+      }
+      try{
+        final m=await http.get(Uri.parse(base+'/v1/nse/mcp/tools')).timeout(const Duration(seconds:15));
+        final mj=jsonDecode(m.body) as Map<String,dynamic>;
+        final connected=m.statusCode<300 && mj['connected']==true;
+        setState(()=>mcpStatus=connected
+          ? 'CONNECTED • ${mj['count'] ?? 0} tools'
+          : 'NOT CONNECTED • HTTP ${m.statusCode}');
+      }catch(_){setState(()=>mcpStatus='CHECK FAILED');}
       final r=await http.get(Uri.parse(base+'/v1/angel/status'),headers:_authHeaders()).timeout(const Duration(seconds:12));
       final j=jsonDecode(r.body) as Map<String,dynamic>;
-      setState(()=>apiStatus=r.statusCode<300 && j['connected']==true?'Angel One connected':'Connection failed');
-      if(r.statusCode<300) await _loadCandles();
-    }catch(_){setState(()=>apiStatus='Backend connection failed');}
+      setState(()=>apiStatus=r.statusCode<300 && j['connected']==true
+        ?'Angel One connected'
+        :'Backend reachable • Angel session not connected');
+      if(r.statusCode<300 && j['connected']==true) await _loadCandles();
+    }catch(_){
+      setState(()=>apiStatus='Backend URL unreachable');
+    }
+  }
+
+  Future<void> _loginAngel() async {
+    final base=_validatedBackendUrl();
+    if(base==null)return;
+    final client=loginClientController.text.trim();
+    final pin=loginPinController.text.trim();
+    final totp=loginTotpController.text.trim();
+    if(client.isEmpty || pin.isEmpty || totp.isEmpty){
+      setState(()=>apiStatus='Enter Client ID, PIN and current TOTP');
+      return;
+    }
+    try{
+      final r=await http.post(
+        Uri.parse(base+'/v1/angel/login'),
+        headers:{'Content-Type':'application/json',..._authHeaders()},
+        body:jsonEncode({'clientId':client,'pin':pin,'totp':totp}),
+      ).timeout(const Duration(seconds:15));
+      final j=jsonDecode(r.body) as Map<String,dynamic>;
+      if(r.statusCode>=200 && r.statusCode<300 && j['connected']==true){
+        setState(()=>apiStatus='Angel One connected');
+        await _connectBackend();
+        if(mounted)setState(()=>tab=2);
+      }else{
+        setState(()=>apiStatus='Angel login failed • HTTP ${r.statusCode}');
+      }
+    }catch(_){setState(()=>apiStatus='Angel login request failed');}
   }
 
   Future<void> _loadCandles() async {
@@ -219,7 +278,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
 
   Widget _ai()=>Column(children:[
     _info('Puter.js login + AI validation is opened securely from the backend origin. The deterministic engine remains the source of CALL/PUT/WAIT/NO TRADE.',Icons.lock_open),
-    FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>PuterAiScreen(backendUrl:backendUrl))),icon:const Icon(Icons.auto_awesome),label:const Text('SIGN IN WITH PUTER + VALIDATE MARKET')),
+    FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>PuterAiScreen(backendUrl:backendUrl))),icon:const Icon(Icons.auto_awesome),label:const Text('SIGN IN WITH PUTER + RUN 6-LAYER VALIDATION')),
     const SizedBox(height:8),
     ...['L1 • GPT-5.6 Luna','L2 • Claude Sonnet 4.6','L3 • GPT-5.6 Sol','L4 • DeepSeek Chat','L5 • Gemini 2.5 Flash','L6 • Grok 4']
       .map((x)=>_row(x,'AGREE','Validation only')),
@@ -281,32 +340,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     _setting('Live quote','SmartAPI FULL + WebSocket'),
     _setting('Historical candles','SmartAPI Historical API'),
     _setting('Option Greeks','Delta • Gamma • Theta • Vega • IV'),
-    const SizedBox(height:8),
-    TextField(controller:growwTokenController,obscureText:true,autocorrect:false,enableSuggestions:false,decoration:const InputDecoration(labelText:'Groww Access Token',hintText:'Optional • server-side preferred',prefixIcon:Icon(Icons.vpn_key))),
-    const SizedBox(height:8),
-    FilledButton.icon(onPressed:_checkGroww,icon:const Icon(Icons.compare_arrows),label:const Text('CHECK GROWW DATA')),
     _setting('Order placement','Not exposed in this APK'),
   ]);
-
-  Future<void> _checkGroww() async {
-    final base=_validatedBackendUrl();
-    if(base==null)return;
-    try {
-      final headers=<String,String>{
-        if(growwTokenController.text.trim().isNotEmpty)
-          'x-groww-token':growwTokenController.text.trim(),
-        ..._authHeaders(),
-      };
-      final r=await http.get(Uri.parse('$base/v1/groww/status'),headers:headers)
-          .timeout(const Duration(seconds:12));
-      if(!mounted)return;
-      setState(()=>apiStatus=r.statusCode==200?'Groww adapter ready':'Groww: HTTP ${r.statusCode}');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(apiStatus)));
-    } catch(e) {
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content:Text('Groww check failed: $e')));
-    }
-  }
 
   Widget _indicatorPanel(){
     final close=candles.map((x)=>_num(x['close'])).whereType<double>().toList();
