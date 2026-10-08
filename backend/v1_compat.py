@@ -22,6 +22,7 @@ _official_nse_mcp = NSEMCP()
 _groww_default = GrowwClient(get_settings().groww_access_token)
 
 def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
+                       x_token: str = Header(default="", alias="x-token"),
                        authorization: str = Header(default="")) -> None:
     s = get_settings()
     if str(s.api_token_required).strip().lower() not in {"1", "on", "true", "yes"}:
@@ -29,7 +30,7 @@ def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
     expected = str(s.api_token or "").strip() if hasattr(s, "api_token") else ""
     if not expected:
         raise HTTPException(503, "API_TOKEN is required on the server")
-    supplied = x_app_key.strip()
+    supplied = x_app_key.strip() or x_token.strip()
     if not supplied and authorization.lower().startswith("bearer "):
         supplied = authorization[7:].strip()
     if not supplied or not hmac.compare_digest(supplied, expected):
