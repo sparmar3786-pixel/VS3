@@ -1,5 +1,7 @@
 """PDF-compatible /v1 API facade over the existing VS3 engine.
 
+CI-verified API contract: keep this module syntactically complete before APK builds.
+
 Read-only market analysis only. No order-placement endpoint is exposed.
 """
 from __future__ import annotations
