@@ -1,7 +1,5 @@
 """PDF-compatible /v1 API facade over the existing VS3 engine.
 
-CI-verified API contract: keep this module syntactically complete before APK builds.
-
 Read-only market analysis only. No order-placement endpoint is exposed.
 """
 from __future__ import annotations
@@ -76,10 +74,10 @@ async def angel_login(body: dict = Body(...)) -> dict:
     s = get_settings()
     client_id = str(body.get("clientId") or body.get("client_id") or s.angel_client_id).strip()
     pin = str(body.get("pin") or s.angel_pin).strip()
-    api_key = str(body.get("apiKey") or body.get("api_key") or s.angel_api_key).strip()
+    api_key = str(s.angel_api_key).strip()
     totp = str(body.get("totp") or "").strip()
     if not (client_id and pin and api_key and totp):
-        raise HTTPException(400, "need Angel One API key + client_id + PIN + TOTP")
+        raise HTTPException(400, "need configured Angel One API key + client_id + PIN + TOTP")
     try:
         if hasattr(src, "api_key_override"):
             src.api_key_override = api_key
