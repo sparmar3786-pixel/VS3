@@ -26,6 +26,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   final TextEditingController loginPinController=TextEditingController();
   final TextEditingController loginTotpController=TextEditingController();
   String mcpStatus='NSE MCP not checked';
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   // 30-screen reference layout from the supplied NSE-AI-TERMINAL design.
   // Core live-data screens are preserved; no order-placement screen is exposed.
   static const pages=<String>[
@@ -41,9 +42,13 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   @override Widget build(BuildContext context)=>MaterialApp(
     debugShowCheckedModeBanner:false,title:'NSE-AI-TERMINAL',themeMode:mode,
     theme:_theme(false),darkTheme:_theme(true),
-    home:Builder(builder:(context)=>Scaffold(
+    home:Scaffold(
+      key:_scaffoldKey,
       appBar:AppBar(
-        leading:IconButton(icon:const Icon(Icons.menu),onPressed:()=>Scaffold.of(context).openDrawer()),
+        leading:IconButton(
+          icon:const Icon(Icons.menu),
+          onPressed:()=>_scaffoldKey.currentState?.openDrawer(),
+        ),
         title:Row(children:[_logo(32),const SizedBox(width:8),const Expanded(child:Text('NSE-AI-TERMINAL'))]),
         actions:[const Chip(label:Text('LIVE')),PopupMenuButton<String>(
           onSelected:(v){setState(()=>tab=v=='ai'?13:v=='search'?29:v=='chart'?16:28);},
@@ -56,7 +61,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
           onPressed:()=>setState(()=>mode=mode==ThemeMode.dark?ThemeMode.light:ThemeMode.dark),
           icon:Icon(mode==ThemeMode.dark?Icons.light_mode:Icons.dark_mode))]
       ),
-      drawer:_drawer(context),body:_page(tab),
+      drawer:_drawer(),
+      body:_page(tab),
       bottomNavigationBar:NavigationBar(
         selectedIndex:tab==2?0:tab==4?1:tab==10?2:tab==15?3:4,
         onDestinationSelected:(i)=>setState(()=>tab=[2,4,10,15,14][i]),
@@ -65,7 +71,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
           NavigationDestination(icon:Icon(Icons.table_chart_outlined),label:'Chain'),
           NavigationDestination(icon:Icon(Icons.bolt_outlined),label:'Signals'),
           NavigationDestination(icon:Icon(Icons.account_balance_wallet_outlined),label:'Portfolio'),
-          NavigationDestination(icon:Icon(Icons.more_horiz),label:'More')]))));
+          NavigationDestination(icon:Icon(Icons.more_horiz),label:'More')])));
 
   ThemeData _theme(bool dark)=>ThemeData(
     useMaterial3:true,brightness:dark?Brightness.dark:Brightness.light,
@@ -75,15 +81,15 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
       margin:const EdgeInsets.only(bottom:10),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(15))),
     navigationBarTheme:NavigationBarThemeData(backgroundColor:dark?const Color(0xff0e1a29):Colors.white));
 
-  Drawer _drawer(BuildContext context)=>Drawer(child:SafeArea(child:Column(children:[
+  Drawer _drawer()=>Drawer(child:SafeArea(child:Column(children:[
     Padding(padding:const EdgeInsets.all(18),child:Row(children:[_logo(44),const SizedBox(width:10),
       const Expanded(child:Text('NSE-AI-TERMINAL\n42-point • 377 modules',style:TextStyle(fontWeight:FontWeight.w800)))])),
     SwitchListTile(title:const Text('Dark mode'),value:mode==ThemeMode.dark,
       onChanged:(v)=>setState(()=>mode=v?ThemeMode.dark:ThemeMode.light)),const Divider(),
-    Expanded(child:ListView.builder(itemCount:pages.length,itemBuilder:(_,i)=>ListTile(
+    Expanded(child:ListView.builder(itemCount:pages.length,itemBuilder:(ctx,i)=>ListTile(
       dense:true,selected:tab==i,leading:Icon(_icons[i]),
       title:Text((i+1).toString()+'. '+pages[i]),
-      onTap:(){Navigator.pop(context);setState(()=>tab=i);}))),
+      onTap:(){Navigator.pop(ctx);setState(()=>tab=i);}))),
     const Padding(padding:EdgeInsets.all(12),child:Text('Live data only • Order placement unavailable • Secrets server-side',style:TextStyle(fontSize:11)))
   ])));
 
