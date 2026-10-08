@@ -24,6 +24,7 @@ jobs:
           rm -rf .flutter_build/lib .flutter_build/test
           cp -r flutter_app/lib .flutter_build/lib
           cp -r flutter_app/test .flutter_build/test
+          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "26.3.11579264"/' .flutter_build/android/app/build.gradle.kts
       - name: Dependencies
         working-directory: .flutter_build
         run: flutter pub get

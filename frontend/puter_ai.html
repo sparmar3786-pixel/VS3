@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://js.puter.com/v2/"></script>
+<style>body{font-family:Arial;margin:0;padding:16px;background:#f5f8fc;color:#162235}.card{background:white;border-radius:16px;padding:14px;margin:10px 0}button{padding:12px 16px;border:0;border-radius:22px;background:#1769e0;color:white;font-weight:700}.muted{color:#687384;font-size:13px}.pill{display:inline-block;padding:6px 10px;border-radius:18px;background:#edf5ff;margin:3px;font-weight:700}</style></head>
+<body><div class="card"><h2>Puter.js AI Validation</h2>
+<p class="muted">Deterministic engine decides. Puter AI only validates, explains and can downgrade a weak/conflicting result.</p>
+<button id="login">SIGN IN WITH PUTER</button> <button id="run">VALIDATE CURRENT MARKET</button>
+<div id="status" class="muted">Not signed in</div></div>
+<div id="market" class="card">Waiting for market context…</div><div id="ai" class="card">AI validation waiting…</div>
+<script>
+const q=new URLSearchParams(location.search); const backend=q.get("backend")||location.origin;
+let signed=false;
+async function login(){try{await puter.auth.signIn();signed=true;status.textContent="Puter authenticated";}catch(e){status.textContent="Puter login failed: "+(e.message||e)}}
+async function validate(){
+ try{
+  const c=await fetch(backend.replace(/\/$/,"")+"/v1/ai/context?index=NIFTY").then(r=>r.json());
+  const s=await fetch(backend.replace(/\/$/,"")+"/v1/signal/validate?symbol=NIFTY").then(r=>r.json());
+  market.textContent=JSON.stringify({signal:s,source:c.nse_mcp?.source||"unknown"},null,2);
+  if(!signed){ai.textContent="Sign in to Puter first; deterministic signal remains visible.";return}
+  const prompt="Validate this deterministic NSE options result. Do not invent data. Explain why CALL/PUT/WAIT, support/resistance nature, PCR/OI evidence and R:R. If evidence is stale/conflicting, recommend WAIT. Return concise JSON with verdict, agrees, concerns, explanation.\n"+JSON.stringify(s);
+  const r=await puter.ai.chat(prompt,{model:"gpt-5.6-luna",temperature:0.1,max_tokens:700});
+  ai.textContent=typeof r==="string"?r:JSON.stringify(r,null,2);
+ }catch(e){status.textContent="Validation error: "+(e.message||e)}
+}
+document.getElementById("login").onclick=login; document.getElementById("run").onclick=validate;
+</script></body></html>
