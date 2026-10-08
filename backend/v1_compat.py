@@ -1,5 +1,6 @@
 """PDF-compatible /v1 API facade over the existing VS3 engine.
 
+Preflight-reviewed: Angel One + official NSE MCP only; no Groww production route.
 Read-only market analysis only. No order-placement endpoint is exposed.
 """
 from __future__ import annotations
