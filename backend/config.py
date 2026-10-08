@@ -32,9 +32,7 @@ class Settings(BaseSettings):
 
     # ---------------- data source ----------------
     data_source: str = "angel_one"
-    data_fallback_order: str = "angel_one,groww,nse_mcp"
-    groww_access_token: str = ""
-    groww_base_url: str = "https://api.groww.in/v1"
+    data_fallback_order: str = "angel_one,nse_mcp"
     nse_public_delay_sec: float = 180.0
 
     # ---------------- Angel One SmartAPI ----------------
