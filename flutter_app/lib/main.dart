@@ -502,22 +502,21 @@ class PuterAiScreen extends StatefulWidget {
   const PuterAiScreen({super.key, required this.backendUrl});
   @override State<PuterAiScreen> createState()=>_PuterAiScreenState();
 }
+
 class _PuterAiScreenState extends State<PuterAiScreen> {
   late final WebViewController controller;
-  @override void initState() {
+
+  @override
+  void initState() {
     super.initState();
+    final base=widget.backendUrl.replaceFirst(RegExp(r'/$'), '');
     controller=WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('${widget.backendUrl.replaceAll(RegExp(r'/, '')}/puter-ai.html?backend=${Uri.encodeComponent(widget.backendUrl)}'));
+      ..loadRequest(Uri.parse('$base/puter-ai.html?backend=${Uri.encodeComponent(base)}'));
   }
-  @override Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:const Text('Puter.js AI Validation')),
-    body:WebViewWidget(controller:controller),
-  );
-}
-), '')}/puter-ai.html?backend=${Uri.encodeComponent(widget.backendUrl)}'));
-  }
-  @override Widget build(BuildContext context)=>Scaffold(
+
+  @override
+  Widget build(BuildContext context)=>Scaffold(
     appBar:AppBar(title:const Text('Puter.js AI Validation')),
     body:WebViewWidget(controller:controller),
   );
