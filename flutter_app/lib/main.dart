@@ -289,11 +289,40 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   ]);
 
   Future<void> _checkGroww() async {
+    final base=_validatedBackendUrl();
+    if(base==null)return;
     try {
-      final r=await http.get(Uri.parse('${backendUrl.replaceAll(RegExp(r'/\\
+      final headers=<String,String>{
+        if(growwTokenController.text.trim().isNotEmpty)
+          'x-groww-token':growwTokenController.text.trim(),
+        ..._authHeaders(),
+      };
+      final r=await http.get(Uri.parse('$base/v1/groww/status'),headers:headers)
+          .timeout(const Duration(seconds:12));
+      if(!mounted)return;
+      setState(()=>apiStatus=r.statusCode==200?'Groww adapter ready':'Groww: HTTP ${r.statusCode}');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(apiStatus)));
+    } catch(e) {
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content:Text('Groww check failed: $e')));
+    }
+  }
+
+  Widget _indicatorPanel(){
     final close=candles.map((x)=>_num(x['close'])).whereType<double>().toList();
     final e8=_ema(close,8); final e13=_ema(close,13);
-    return _grid([['EMA 8',_fmt(e8.isEmpty?null:e8.last),'Indicator'],['EMA 13',_fmt(e13.isEmpty?null:e13.last),'Indicator'],['VWAP',_fmt(_vwap(candles)),'Indicator'],['RSI 14',_fmt(_rsi(close,14)),'Indicator'],['MACD',_fmt(_macd(close)),'Indicator'],['ATR 14',_fmt(_atr(candles,14)),'Indicator'],['WaveTrend','Live calculation','Indicator'],['Supertrend','Live calculation','Indicator'],['Pivot/CPR','Live calculation','Indicator'],['Fibonacci','Context only','Indicator']]);
+    return _grid([
+      ['EMA 8',_fmt(e8.isEmpty?null:e8.last),'Indicator'],
+      ['EMA 13',_fmt(e13.isEmpty?null:e13.last),'Indicator'],
+      ['VWAP',_fmt(_vwap(candles)),'Indicator'],
+      ['RSI 14',_fmt(_rsi(close,14)),'Indicator'],
+      ['MACD',_fmt(_macd(close)),'Indicator'],
+      ['ATR 14',_fmt(_atr(candles,14)),'Indicator'],
+      ['WaveTrend','Live calculation','Indicator'],
+      ['Supertrend','Live calculation','Indicator'],
+      ['Pivot/CPR','Live calculation','Indicator'],
+      ['Fibonacci','Context only','Indicator'],
+    ]);
   }
 
   double? _num(dynamic v)=>v is num?v.toDouble():double.tryParse(v?.toString() ?? '');
@@ -314,17 +343,25 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     for(var i=1;i<=n;i++){final d=a[i]-a[i-1];if(d>=0)gain+=d;else loss-=d;}
     var avgG=gain/n,avgL=loss/n;
     for(var i=n+1;i<a.length;i++){final d=a[i]-a[i-1];avgG=(avgG*(n-1)+(d>0?d:0))/n;avgL=(avgL*(n-1)+(d<0?-d:0))/n;}
-    if(avgL==0)return 100; return 100-(100/(1+avgG/avgL));
+    if(avgL==0)return 100;
+    return 100-(100/(1+avgG/avgL));
   }
   double? _atr(List<Map<String,dynamic>> rows,int n){
     if(rows.length<n+1)return null;
     final tr=<double>[];
-    for(var i=1;i<rows.length;i++){final h=_num(rows[i]['high']),l=_num(rows[i]['low']),pc=_num(rows[i-1]['close']);if(h!=null&&l!=null&&pc!=null){tr.add([h-l,(h-pc).abs(),(l-pc).abs()].reduce((a,b)=>a>b?a:b));}}
-    if(tr.length<n)return null; return tr.sublist(tr.length-n).reduce((a,b)=>a+b)/n;
+    for(var i=1;i<rows.length;i++){
+      final h=_num(rows[i]['high']),l=_num(rows[i]['low']),pc=_num(rows[i-1]['close']);
+      if(h!=null&&l!=null&&pc!=null)tr.add([h-l,(h-pc).abs(),(l-pc).abs()].reduce((a,b)=>a>b?a:b));
+    }
+    if(tr.length<n)return null;
+    return tr.sublist(tr.length-n).reduce((a,b)=>a+b)/n;
   }
   double? _vwap(List<Map<String,dynamic>> rows){
     var pv=0.0,v=0.0;
-    for(final r in rows){final h=_num(r['high']),l=_num(r['low']),c=_num(r['close']),vol=_num(r['volume']);if(h!=null&&l!=null&&c!=null&&vol!=null){pv+=((h+l+c)/3)*vol;v+=vol;}}
+    for(final r in rows){
+      final h=_num(r['high']),l=_num(r['low']),cc=_num(r['close']),vol=_num(r['volume']);
+      if(h!=null&&l!=null&&cc!=null&&vol!=null){pv+=((h+l+cc)/3)*vol;v+=vol;}
+    }
     return v==0?null:pv/v;
   }
 
@@ -651,7 +688,14 @@ class _PuterAiScreenState extends State<PuterAiScreen> {
     super.initState();
     controller=WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('${widget.backendUrl.replaceAll(RegExp(r'/\\$'), '')}/puter-ai.html?backend=${Uri.encodeComponent(widget.backendUrl)}'));
+      ..loadRequest(Uri.parse('${widget.backendUrl.replaceAll(RegExp(r'/, '')}/puter-ai.html?backend=${Uri.encodeComponent(widget.backendUrl)}'));
+  }
+  @override Widget build(BuildContext context)=>Scaffold(
+    appBar:AppBar(title:const Text('Puter.js AI Validation')),
+    body:WebViewWidget(controller:controller),
+  );
+}
+), '')}/puter-ai.html?backend=${Uri.encodeComponent(widget.backendUrl)}'));
   }
   @override Widget build(BuildContext context)=>Scaffold(
     appBar:AppBar(title:const Text('Puter.js AI Validation')),
