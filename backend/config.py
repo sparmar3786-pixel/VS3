@@ -32,7 +32,10 @@ class Settings(BaseSettings):
 
     # ---------------- data source ----------------
     data_source: str = "angel_one"
-    data_fallback_order: str = "angel_one"
+    data_fallback_order: str = "angel_one,groww,nse_mcp"
+    groww_access_token: str = ""
+    groww_base_url: str = "https://api.groww.in/v1"
+    nse_public_delay_sec: float = 180.0
 
     # ---------------- Angel One SmartAPI ----------------
     angel_api_key: str = ""
@@ -73,6 +76,7 @@ class Settings(BaseSettings):
     market_cache_dir: str = "data/market_cache"
     chain_cache_ttl_sec: float = 15.0
     chain_stale_sec: float = 60.0
+    delayed_source_max_age_sec: float = 240.0
     chain_failure_backoff_sec: float = 15.0
     api_token: str = ""
     api_token_required: str = "on"

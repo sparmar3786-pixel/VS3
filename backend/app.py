@@ -21,7 +21,11 @@ _frontend = ROOT / "frontend"
 
 app.include_router(build_router(lambda: getattr(__import__("backend.main", fromlist=["state"]), "state").engine), prefix="")
 app.include_router(build_platform_router())
-app.include_router(v1_router)
+# Mount the compatibility router directly on the application's route table.
+# This preserves the router's /v1 prefix and guarantees both HTTP and WebSocket
+# contract routes are visible through app.routes (including test/runtime introspection).
+if not any(getattr(route, "path", None) == "/v1/angel/status" for route in app.router.routes):
+    app.router.routes.extend(v1_router.routes)
 
 _recorder_task: asyncio.Task | None = None
 
@@ -53,3 +57,7 @@ async def terminal_page() -> FileResponse:
 @app.get("/", include_in_schema=False)
 async def root_page() -> FileResponse:
     return FileResponse(_frontend / "terminal.html", media_type="text/html")
+
+@app.get("/puter-ai.html", include_in_schema=False)
+async def puter_ai_page() -> FileResponse:
+    return FileResponse(_frontend / "puter_ai.html", media_type="text/html")
