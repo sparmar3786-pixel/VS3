@@ -15,11 +15,9 @@ from backend.config import get_settings
 from backend.live_api import _from_snap, _jwt_exp
 from backend.main import state
 from backend.nse_mcp import NSEMCP, result_to_csv
-from backend.groww_client import GrowwClient, GrowwError
 from backend.signal_engine import build_signal
 
 _official_nse_mcp = NSEMCP()
-_groww_default = GrowwClient(get_settings().groww_access_token)
 
 def _require_api_token(request: Request,
                        x_app_key: str = Header(default="", alias="x-app-key"),
