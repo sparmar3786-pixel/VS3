@@ -3,7 +3,6 @@
 Read-only market analysis only. No order-placement endpoint is exposed.
 """
 from __future__ import annotations
-import asyncio
 import csv
 import io
 import time
@@ -14,15 +13,8 @@ from fastapi.responses import Response
 from backend.config import get_settings
 from backend.live_api import _from_snap, _jwt_exp
 from backend.main import state
-from backend.nse_mcp import NSEMCP, result_to_csv
-from backend.groww_client import GrowwClient, GrowwError
-from backend.signal_engine import build_signal
-
-_official_nse_mcp = NSEMCP()
-_groww_default = GrowwClient(get_settings().groww_access_token)
 
 def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
-                       x_token: str = Header(default="", alias="x-token"),
                        authorization: str = Header(default="")) -> None:
     s = get_settings()
     if str(s.api_token_required).strip().lower() not in {"1", "on", "true", "yes"}:
@@ -30,7 +22,7 @@ def _require_api_token(x_app_key: str = Header(default="", alias="x-app-key"),
     expected = str(s.api_token or "").strip() if hasattr(s, "api_token") else ""
     if not expected:
         raise HTTPException(503, "API_TOKEN is required on the server")
-    supplied = x_app_key.strip() or x_token.strip()
+    supplied = x_app_key.strip()
     if not supplied and authorization.lower().startswith("bearer "):
         supplied = authorization[7:].strip()
     if not supplied or not hmac.compare_digest(supplied, expected):
@@ -135,53 +127,34 @@ async def angel_option_chain(symbol: str = "NIFTY", count: int = 40, expiry: Opt
 
 @router.get("/nse/mcp/tools")
 async def mcp_tools() -> dict:
-    try:
-        tools = await asyncio.to_thread(_official_nse_mcp.tools)
-        return {"enabled": True, "connected": True, "endpoint": _official_nse_mcp.url,
-                "count": len(tools),
-                "tools": [{"name": t.get("name"), "description": t.get("description")} for t in tools]}
-    except Exception as exc:
-        return {"enabled": get_settings().mcp_on, "connected": False, "endpoint": _official_nse_mcp.url,
-                "count": 0, "tools": [], "error": str(exc)[:500]}
+    return {"enabled": get_settings().mcp_on, "count": len(MCP_TOOLS),
+            "tools": [{"name": x} for x in MCP_TOOLS]}
 
 @router.get("/nse/mcp/context")
 async def mcp_context(symbol: str = "NIFTY") -> dict:
     key = symbol.upper().replace(" ", "")
-    try:
-        data = await asyncio.to_thread(_official_nse_mcp.context, key)
-        data["symbol"] = key
-        data["source"] = "official_nse_streamable_http"
-        data["fetched_at"] = time.time()
-        return data
-    except Exception as exc:
-        snap = state.engine._mcp_snapshots.get(key)
-        updated = state.engine._mcp_updated.get(key)
-        if snap is not None:
-            data = _from_snap(snap, [])
-            if updated is not None:
-                data["age_sec"] = max(0.0, time.time() - updated)
-            return {"symbol": key, "connected": True, "source": "nse_mcp_cache", "data": data}
-        return {"symbol": key, "connected": False, "pending": True, "source": "official_nse_streamable_http",
-                "error": str(exc)[:500]}
+    snap = state.engine._mcp_snapshots.get(key)
+    updated = state.engine._mcp_updated.get(key)
+    if snap is None:
+        return {"symbol": key, "connected": False, "pending": True, "source": "nse_mcp"}
+    data = _from_snap(snap, [])
+    if updated is not None:
+        data["age_sec"] = max(0.0, time.time() - updated)
+    return {"symbol": key, "connected": True, "source": "nse_mcp", "data": data}
 
 @router.get("/nse/option-chain.csv")
 async def nse_option_chain_csv(symbol: str = "NIFTY", expiry: Optional[str] = None) -> Response:
     key = symbol.upper().replace(" ", "")
-    try:
-        _tool, result = await asyncio.to_thread(_official_nse_mcp.option_chain, key, expiry)
-        return Response(result_to_csv(result), media_type="text/csv",
-                        headers={"X-NSE-MCP-Tool": str(_tool)})
-    except Exception as exc:
-        snap = state.engine._mcp_snapshots.get(key) or state.engine.latest_snapshot(key)
-        if snap is None:
-            raise HTTPException(503, "NSE MCP option chain unavailable: " + str(exc)[:300])
-        buf = io.StringIO()
-        w = csv.writer(buf)
-        w.writerow(["symbol","expiry","spot","strike","type","ltp","oi","oi_change","volume","iv","source"])
-        for row in _rows(snap, 200):
-            w.writerow([key,snap.expiry,snap.spot,row["strike"],row["type"],row["ltp"],row["oi"],
-                        row["oiChg"],row["volume"],row["iv"],snap.source])
-        return Response(buf.getvalue(), media_type="text/csv")
+    snap = state.engine._mcp_snapshots.get(key) or state.engine.latest_snapshot(key)
+    if snap is None:
+        raise HTTPException(503, "option chain is not available yet")
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["symbol","expiry","spot","strike","type","ltp","oi","oi_change","volume","iv","source"])
+    for row in _rows(snap, 200):
+        w.writerow([key,snap.expiry,snap.spot,row["strike"],row["type"],row["ltp"],row["oi"],
+                    row["oiChg"],row["volume"],row["iv"],snap.source])
+    return Response(buf.getvalue(), media_type="text/csv")
 
 @router.get("/ai/context")
 async def ai_context(index: str = "NIFTY") -> dict:
@@ -189,10 +162,6 @@ async def ai_context(index: str = "NIFTY") -> dict:
     ctx = state.engine.latest_context(key)
     snap = state.engine.latest_snapshot(key)
     mcp = state.engine._mcp_snapshots.get(key)
-    try:
-        mcp = await asyncio.to_thread(_official_nse_mcp.context, key)
-    except Exception:
-        pass
     return {
         "index": key,
         "market_open": bool(ctx and ctx.get("market_open")),
@@ -202,82 +171,6 @@ async def ai_context(index: str = "NIFTY") -> dict:
         "ai_enabled": get_settings().ai_on,
         "read_only": True,
     }
-
-@router.get("/groww/status")
-async def groww_status(x_groww_token: str = Header(default="", alias="x-groww-token")) -> dict:
-    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
-    return GrowwClient(token).status()
-
-@router.get("/groww/market")
-async def groww_market(
-    symbol: str = "NIFTY",
-    segment: str = "CASH",
-    x_groww_token: str = Header(default="", alias="x-groww-token"),
-) -> dict:
-    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
-    try:
-        return GrowwClient(token).quote("NSE", segment.upper(), symbol.upper())
-    except Exception as exc:
-        raise HTTPException(502, f"Groww quote failed ({type(exc).__name__})")
-
-@router.get("/groww/option-chain")
-async def groww_option_chain(
-    underlying: str = "NIFTY",
-    expiry: str = "",
-    exchange: str = "NSE",
-    x_groww_token: str = Header(default="", alias="x-groww-token"),
-) -> dict:
-    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
-    if not expiry:
-        raise HTTPException(400, "expiry is required (YYYY-MM-DD)")
-    try:
-        return GrowwClient(token).option_chain(exchange.upper(), underlying.upper(), expiry)
-    except Exception as exc:
-        raise HTTPException(502, f"Groww option chain failed ({type(exc).__name__})")
-
-@router.get("/market/compare")
-async def market_compare(
-    symbol: str = "NIFTY",
-    x_groww_token: str = Header(default="", alias="x-groww-token"),
-) -> dict:
-    key = symbol.upper().replace(" ", "")
-    out = {"symbol": key, "sources": {}, "validation": {"same_symbol": True}}
-    try:
-        out["sources"]["nse_mcp"] = await asyncio.to_thread(_official_nse_mcp.context, key)
-        out["sources"]["nse_mcp"]["delay_note"] = "Official NSE CM Market Live is described by NSE as running 1-3 minutes behind real-time; this is not guaranteed to be exactly 3 minutes."
-    except Exception as exc:
-        out["sources"]["nse_mcp"] = {"connected": False, "error": str(exc)[:300]}
-    src = state.engine._source
-    if src is not None and getattr(src, "jwt", None):
-        try:
-            tick = await src.get_quote(key, token=key)
-            out["sources"]["angel_one"] = tick.model_dump(mode="json") if hasattr(tick, "model_dump") else dict(tick)
-        except Exception as exc:
-            out["sources"]["angel_one"] = {"connected": False, "error": str(exc)[:300]}
-    token = x_groww_token.strip() or get_settings().groww_access_token.strip()
-    if token:
-        try:
-            out["sources"]["groww"] = GrowwClient(token).quote("NSE", "CASH", key)
-        except Exception as exc:
-            out["sources"]["groww"] = {"connected": False, "error": str(exc)[:300]}
-    out["policy"] = "Angel One/Groww are primary live broker validation sources; NSE MCP is delayed validation/reference data. No source alone can authorize a trade."
-    return out
-
-@router.get("/signal/validate")
-async def signal_validate(symbol: str = "NIFTY") -> dict:
-    key = symbol.upper().replace(" ", "")
-    snap = state.engine.latest_snapshot(key)
-    source = getattr(snap, "source", "unknown") if snap is not None else "unknown"
-    result = build_signal(
-        snap,
-        source=source,
-        max_age_sec=get_settings().delayed_source_max_age_sec,
-        min_rr=get_settings().min_rr,
-    )
-    result["strategy_gate"] = "Run60 + Run93 deterministic evidence first"
-    result["ai_role"] = "Puter.js validates/explains this result; AI cannot override missing/stale data."
-    result["nse_delay_sec_config"] = get_settings().nse_public_delay_sec
-    return result
 
 @router.get("/terminal")
 async def terminal() -> dict:

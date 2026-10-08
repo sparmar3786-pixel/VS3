@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:webview_flutter/webview_flutter.dart';
 
 void main()=>runApp(const FinalTerminalDesign());
 
@@ -22,7 +21,6 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   String apiStatus='Backend URL required';
   final TextEditingController backendController=TextEditingController(text:'https://nse-algo-backend-live-production.up.railway.app');
   final TextEditingController accessTokenController=TextEditingController();
-  final TextEditingController growwTokenController=TextEditingController();
   // 30-screen reference layout from the supplied NSE-AI-TERMINAL design.
   // Core live-data screens are preserved; no order-placement screen is exposed.
   static const pages=<String>[
@@ -122,21 +120,10 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     return token.isEmpty?const <String,String>{}:<String,String>{'x-token':token};
   }
 
-  String? _validatedBackendUrl(){
+  Future<void> _connectBackend() async {
     var base=backendUrl.trim();
     while(base.endsWith('/')) base=base.substring(0,base.length-1);
-    if(base.isEmpty){setState(()=>apiStatus='Enter backend URL first');return null;}
-    final uri=Uri.tryParse(base);
-    if(uri==null || uri.scheme!='https' || uri.host.isEmpty){
-      setState(()=>apiStatus='Backend URL must use HTTPS with a valid host');
-      return null;
-    }
-    return base;
-  }
-
-  Future<void> _connectBackend() async {
-    final base=_validatedBackendUrl();
-    if(base==null)return;
+    if(base.isEmpty){setState(()=>apiStatus='Enter backend URL first');return;}
     try{
       final r=await http.get(Uri.parse(base+'/v1/angel/status'),headers:_authHeaders()).timeout(const Duration(seconds:12));
       final j=jsonDecode(r.body) as Map<String,dynamic>;
@@ -146,8 +133,9 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   }
 
   Future<void> _loadCandles() async {
-    final base=_validatedBackendUrl();
-    if(base==null){setState(()=>candles=[]);return;}
+    var base=backendUrl.trim();
+    while(base.endsWith('/')) base=base.substring(0,base.length-1);
+    if(base.isEmpty)return;
     try{
       final url=base+'/v1/angel/candles/'+Uri.encodeComponent(_apiIndex(selectedIndex))+'?interval='+selectedTimeframe+'&days=5';
       final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:15));
@@ -160,8 +148,9 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   }
 
   Future<void> _searchStrategies(String q) async {
-    final base=_validatedBackendUrl();
-    if(base==null){setState(()=>strategyResults=[]);return;}
+    var base=backendUrl.trim();
+    while(base.endsWith('/')) base=base.substring(0,base.length-1);
+    if(base.isEmpty){setState(()=>strategyResults=[]);return;}
     try{
       final url=base+'/v1/strategies?q='+Uri.encodeQueryComponent(q)+'&limit=100';
       final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:10));
@@ -217,11 +206,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
       .asMap().entries.map((e)=>_row('S'+(e.key+1).toString().padLeft(3,'0'),e.value,'OI / Position')),
     _info('Types: Signal • Indicator • Filter • Risk • Data • Backtest • AI • Decision',Icons.list_alt)]);
 
-  Widget _ai()=>Column(children:[
-    _info('Puter.js login + AI validation is opened securely from the backend origin. The deterministic engine remains the source of CALL/PUT/WAIT/NO TRADE.',Icons.lock_open),
-    FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>PuterAiScreen(backendUrl:backendUrl))),icon:const Icon(Icons.auto_awesome),label:const Text('SIGN IN WITH PUTER + VALIDATE MARKET')),
-    const SizedBox(height:8),
-    ...['L1 • GPT-5.6 Luna','L2 • Claude Sonnet 4.6','L3 • GPT-5.6 Sol','L4 • DeepSeek Chat','L5 • Gemini 2.5 Flash','L6 • Grok 4']
+  Widget _ai()=>Column(children:[...['L1 • GPT-5.6 Luna','L2 • Claude Sonnet 4.6','L3 • GPT-5.6 Sol','L4 • DeepSeek Chat','L5 • Gemini 2.5 Flash','L6 • Grok 4']
       .map((x)=>_row(x,'AGREE','Validation only')),
     _verdict('WAIT OVERRIDE','AI may downgrade; it never invents strike, entry, SL or target.',Colors.orange),
     _info('Puter.js listModels() is checked at runtime.',Icons.auto_awesome)]);
@@ -281,48 +266,13 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     _setting('Live quote','SmartAPI FULL + WebSocket'),
     _setting('Historical candles','SmartAPI Historical API'),
     _setting('Option Greeks','Delta • Gamma • Theta • Vega • IV'),
-    const SizedBox(height:8),
-    TextField(controller:growwTokenController,obscureText:true,autocorrect:false,enableSuggestions:false,decoration:const InputDecoration(labelText:'Groww Access Token',hintText:'Optional • server-side preferred',prefixIcon:Icon(Icons.vpn_key))),
-    const SizedBox(height:8),
-    FilledButton.icon(onPressed:_checkGroww,icon:const Icon(Icons.compare_arrows),label:const Text('CHECK GROWW DATA')),
     _setting('Order placement','Not exposed in this APK'),
   ]);
-
-  Future<void> _checkGroww() async {
-    final base=_validatedBackendUrl();
-    if(base==null)return;
-    try {
-      final headers=<String,String>{
-        if(growwTokenController.text.trim().isNotEmpty)
-          'x-groww-token':growwTokenController.text.trim(),
-        ..._authHeaders(),
-      };
-      final r=await http.get(Uri.parse('$base/v1/groww/status'),headers:headers)
-          .timeout(const Duration(seconds:12));
-      if(!mounted)return;
-      setState(()=>apiStatus=r.statusCode==200?'Groww adapter ready':'Groww: HTTP ${r.statusCode}');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(apiStatus)));
-    } catch(e) {
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content:Text('Groww check failed: $e')));
-    }
-  }
 
   Widget _indicatorPanel(){
     final close=candles.map((x)=>_num(x['close'])).whereType<double>().toList();
     final e8=_ema(close,8); final e13=_ema(close,13);
-    return _grid([
-      ['EMA 8',_fmt(e8.isEmpty?null:e8.last),'Indicator'],
-      ['EMA 13',_fmt(e13.isEmpty?null:e13.last),'Indicator'],
-      ['VWAP',_fmt(_vwap(candles)),'Indicator'],
-      ['RSI 14',_fmt(_rsi(close,14)),'Indicator'],
-      ['MACD',_fmt(_macd(close)),'Indicator'],
-      ['ATR 14',_fmt(_atr(candles,14)),'Indicator'],
-      ['WaveTrend','Live calculation','Indicator'],
-      ['Supertrend','Live calculation','Indicator'],
-      ['Pivot/CPR','Live calculation','Indicator'],
-      ['Fibonacci','Context only','Indicator'],
-    ]);
+    return _grid([['EMA 8',_fmt(e8.isEmpty?null:e8.last),'Indicator'],['EMA 13',_fmt(e13.isEmpty?null:e13.last),'Indicator'],['VWAP',_fmt(_vwap(candles)),'Indicator'],['RSI 14',_fmt(_rsi(close,14)),'Indicator'],['MACD',_fmt(_macd(close)),'Indicator'],['ATR 14',_fmt(_atr(candles,14)),'Indicator'],['WaveTrend','Live calculation','Indicator'],['Supertrend','Live calculation','Indicator'],['Pivot/CPR','Live calculation','Indicator'],['Fibonacci','Context only','Indicator']]);
   }
 
   double? _num(dynamic v)=>v is num?v.toDouble():double.tryParse(v?.toString() ?? '');
@@ -343,25 +293,17 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     for(var i=1;i<=n;i++){final d=a[i]-a[i-1];if(d>=0)gain+=d;else loss-=d;}
     var avgG=gain/n,avgL=loss/n;
     for(var i=n+1;i<a.length;i++){final d=a[i]-a[i-1];avgG=(avgG*(n-1)+(d>0?d:0))/n;avgL=(avgL*(n-1)+(d<0?-d:0))/n;}
-    if(avgL==0)return 100;
-    return 100-(100/(1+avgG/avgL));
+    if(avgL==0)return 100; return 100-(100/(1+avgG/avgL));
   }
   double? _atr(List<Map<String,dynamic>> rows,int n){
     if(rows.length<n+1)return null;
     final tr=<double>[];
-    for(var i=1;i<rows.length;i++){
-      final h=_num(rows[i]['high']),l=_num(rows[i]['low']),pc=_num(rows[i-1]['close']);
-      if(h!=null&&l!=null&&pc!=null)tr.add([h-l,(h-pc).abs(),(l-pc).abs()].reduce((a,b)=>a>b?a:b));
-    }
-    if(tr.length<n)return null;
-    return tr.sublist(tr.length-n).reduce((a,b)=>a+b)/n;
+    for(var i=1;i<rows.length;i++){final h=_num(rows[i]['high']),l=_num(rows[i]['low']),pc=_num(rows[i-1]['close']);if(h!=null&&l!=null&&pc!=null){tr.add([h-l,(h-pc).abs(),(l-pc).abs()].reduce((a,b)=>a>b?a:b));}}
+    if(tr.length<n)return null; return tr.sublist(tr.length-n).reduce((a,b)=>a+b)/n;
   }
   double? _vwap(List<Map<String,dynamic>> rows){
     var pv=0.0,v=0.0;
-    for(final r in rows){
-      final h=_num(r['high']),l=_num(r['low']),cc=_num(r['close']),vol=_num(r['volume']);
-      if(h!=null&&l!=null&&cc!=null&&vol!=null){pv+=((h+l+cc)/3)*vol;v+=vol;}
-    }
+    for(final r in rows){final h=_num(r['high']),l=_num(r['low']),c=_num(r['close']),vol=_num(r['volume']);if(h!=null&&l!=null&&c!=null&&vol!=null){pv+=((h+l+c)/3)*vol;v+=vol;}}
     return v==0?null:pv/v;
   }
 
@@ -495,29 +437,4 @@ double mathSqrt(double x){
   var g=x>1?x:1.0;
   for(var i=0;i<12;i++)g=(g+x/g)/2;
   return g;
-}
-
-class PuterAiScreen extends StatefulWidget {
-  final String backendUrl;
-  const PuterAiScreen({super.key, required this.backendUrl});
-  @override State<PuterAiScreen> createState()=>_PuterAiScreenState();
-}
-
-class _PuterAiScreenState extends State<PuterAiScreen> {
-  late final WebViewController controller;
-
-  @override
-  void initState() {
-    super.initState();
-    final base=widget.backendUrl.replaceFirst(RegExp(r'/$'), '');
-    controller=WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('$base/puter-ai.html?backend=${Uri.encodeComponent(base)}'));
-  }
-
-  @override
-  Widget build(BuildContext context)=>Scaffold(
-    appBar:AppBar(title:const Text('Puter.js AI Validation')),
-    body:WebViewWidget(controller:controller),
-  );
 }

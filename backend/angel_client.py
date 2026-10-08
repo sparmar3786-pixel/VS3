@@ -37,14 +37,15 @@ class AngelClient:
             if not d.get("status"):
                 self.api=None; self.session_started=0.0
                 raise RuntimeError(f"Angel login failed: {d.get('message', d)}")
-            # generateSession() is the authoritative login check. Do not call
-            # getProfile() here: downstream profile/data services can reject a
-            # freshly issued JWT independently and incorrectly turn a valid login
-            # into an "Invalid Token" login failure.
-            session_data = d.get("data") or {}
-            if not session_data.get("jwtToken") and not session_data.get("jwt_token"):
+            try:
+                profile = self.api.getProfile(d.get("data", {}).get("refreshToken") or d.get("data", {}).get("refresh_token"))
+                if isinstance(profile, dict) and profile.get("status") is False:
+                    raise RuntimeError(
+                        f"SmartAPI data authentication rejected: {profile.get('errorcode','UNKNOWN')} {profile.get('message','')}"
+                    )
+            except Exception as ex:
                 self.api=None; self.session_started=0.0
-                raise RuntimeError("Angel login returned no JWT session token.")
+                raise RuntimeError(f"SmartAPI API key/data authentication rejected: {str(ex)[:220]}")
             self.session_started=time.time()
             self.build_chain()
             self._start_stream(d)
