@@ -1,9 +1,15 @@
-from fastapi.routing import APIRoute
 from backend.app import app
 
+def _routes(routes):
+    for route in routes:
+        nested = getattr(route, "routes", None)
+        if nested is not None:
+            yield from _routes(nested)
+        else:
+            yield route
 
 def test_pdf_v1_contract_routes_are_mounted():
-    paths = {r.path for r in app.routes}
+    paths = {r.path for r in _routes(app.routes) if getattr(r, "path", None)}
     expected = {
         "/health",
         "/v1/angel/status",
@@ -18,6 +24,5 @@ def test_pdf_v1_contract_routes_are_mounted():
     }
     assert expected.issubset(paths)
 
-
 def test_pdf_v1_websocket_contract_is_mounted():
-    assert any(getattr(r, "path", None) == "/v1/ws" for r in app.routes)
+    assert any(getattr(r, "path", None) == "/v1/ws" for r in _routes(app.routes))

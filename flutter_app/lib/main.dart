@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:webview_flutter/webview_flutter.dart';
 
 void main()=>runApp(const FinalTerminalDesign());
 
@@ -21,6 +22,7 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   String apiStatus='Backend URL required';
   final TextEditingController backendController=TextEditingController(text:'https://nse-algo-backend-live-production.up.railway.app');
   final TextEditingController accessTokenController=TextEditingController();
+  final TextEditingController growwTokenController=TextEditingController();
   // 30-screen reference layout from the supplied NSE-AI-TERMINAL design.
   // Core live-data screens are preserved; no order-placement screen is exposed.
   static const pages=<String>[
@@ -120,10 +122,21 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     return token.isEmpty?const <String,String>{}:<String,String>{'x-token':token};
   }
 
-  Future<void> _connectBackend() async {
+  String? _validatedBackendUrl(){
     var base=backendUrl.trim();
     while(base.endsWith('/')) base=base.substring(0,base.length-1);
-    if(base.isEmpty){setState(()=>apiStatus='Enter backend URL first');return;}
+    if(base.isEmpty){setState(()=>apiStatus='Enter backend URL first');return null;}
+    final uri=Uri.tryParse(base);
+    if(uri==null || uri.scheme!='https' || uri.host.isEmpty){
+      setState(()=>apiStatus='Backend URL must use HTTPS with a valid host');
+      return null;
+    }
+    return base;
+  }
+
+  Future<void> _connectBackend() async {
+    final base=_validatedBackendUrl();
+    if(base==null)return;
     try{
       final r=await http.get(Uri.parse(base+'/v1/angel/status'),headers:_authHeaders()).timeout(const Duration(seconds:12));
       final j=jsonDecode(r.body) as Map<String,dynamic>;
@@ -133,9 +146,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   }
 
   Future<void> _loadCandles() async {
-    var base=backendUrl.trim();
-    while(base.endsWith('/')) base=base.substring(0,base.length-1);
-    if(base.isEmpty)return;
+    final base=_validatedBackendUrl();
+    if(base==null){setState(()=>candles=[]);return;}
     try{
       final url=base+'/v1/angel/candles/'+Uri.encodeComponent(_apiIndex(selectedIndex))+'?interval='+selectedTimeframe+'&days=5';
       final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:15));
@@ -148,9 +160,8 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
   }
 
   Future<void> _searchStrategies(String q) async {
-    var base=backendUrl.trim();
-    while(base.endsWith('/')) base=base.substring(0,base.length-1);
-    if(base.isEmpty){setState(()=>strategyResults=[]);return;}
+    final base=_validatedBackendUrl();
+    if(base==null){setState(()=>strategyResults=[]);return;}
     try{
       final url=base+'/v1/strategies?q='+Uri.encodeQueryComponent(q)+'&limit=100';
       final r=await http.get(Uri.parse(url),headers:_authHeaders()).timeout(const Duration(seconds:10));
@@ -206,7 +217,11 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
       .asMap().entries.map((e)=>_row('S'+(e.key+1).toString().padLeft(3,'0'),e.value,'OI / Position')),
     _info('Types: Signal • Indicator • Filter • Risk • Data • Backtest • AI • Decision',Icons.list_alt)]);
 
-  Widget _ai()=>Column(children:[...['L1 • GPT-5.6 Luna','L2 • Claude Sonnet 4.6','L3 • GPT-5.6 Sol','L4 • DeepSeek Chat','L5 • Gemini 2.5 Flash','L6 • Grok 4']
+  Widget _ai()=>Column(children:[
+    _info('Puter.js login + AI validation is opened securely from the backend origin. The deterministic engine remains the source of CALL/PUT/WAIT/NO TRADE.',Icons.lock_open),
+    FilledButton.icon(onPressed:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>PuterAiScreen(backendUrl:backendUrl))),icon:const Icon(Icons.auto_awesome),label:const Text('SIGN IN WITH PUTER + VALIDATE MARKET')),
+    const SizedBox(height:8),
+    ...['L1 • GPT-5.6 Luna','L2 • Claude Sonnet 4.6','L3 • GPT-5.6 Sol','L4 • DeepSeek Chat','L5 • Gemini 2.5 Flash','L6 • Grok 4']
       .map((x)=>_row(x,'AGREE','Validation only')),
     _verdict('WAIT OVERRIDE','AI may downgrade; it never invents strike, entry, SL or target.',Colors.orange),
     _info('Puter.js listModels() is checked at runtime.',Icons.auto_awesome)]);
@@ -266,8 +281,27 @@ class _FinalTerminalDesignState extends State<FinalTerminalDesign>{
     _setting('Live quote','SmartAPI FULL + WebSocket'),
     _setting('Historical candles','SmartAPI Historical API'),
     _setting('Option Greeks','Delta • Gamma • Theta • Vega • IV'),
+    const SizedBox(height:8),
+    TextField(controller:growwTokenController,obscureText:true,autocorrect:false,enableSuggestions:false,decoration:const InputDecoration(labelText:'Groww Access Token',hintText:'Optional • server-side preferred',prefixIcon:Icon(Icons.vpn_key))),
+    const SizedBox(height:8),
+    FilledButton.icon(onPressed:_checkGroww,icon:const Icon(Icons.compare_arrows),label:const Text('CHECK GROWW DATA')),
     _setting('Order placement','Not exposed in this APK'),
   ]);
+
+  Future<void> _checkGroww() async {
+    try {
+      final base=backendUrl.replaceAll(RegExp(r'/$'), '');
+      final r=await http.get(
+        Uri.parse('$base/v1/groww/status'),
+        headers:{if(growwTokenController.text.trim().isNotEmpty)'x-groww-token':growwTokenController.text.trim()},
+      ).timeout(const Duration(seconds:10));
+      if(!mounted)return;
+      setState(()=>apiStatus=r.statusCode==200?'Groww adapter ready':'Groww: HTTP ${r.statusCode}');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(apiStatus)));
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Groww check failed: $e')));
+    }
+  }
 
   Widget _indicatorPanel(){
     final close=candles.map((x)=>_num(x['close'])).whereType<double>().toList();
@@ -437,4 +471,24 @@ double mathSqrt(double x){
   var g=x>1?x:1.0;
   for(var i=0;i<12;i++)g=(g+x/g)/2;
   return g;
+}
+
+
+class PuterAiScreen extends StatefulWidget {
+  final String backendUrl;
+  const PuterAiScreen({super.key, required this.backendUrl});
+  @override State<PuterAiScreen> createState()=>_PuterAiScreenState();
+}
+class _PuterAiScreenState extends State<PuterAiScreen> {
+  late final WebViewController controller;
+  @override void initState() {
+    super.initState();
+    controller=WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..loadRequest(Uri.parse('${widget.backendUrl.replaceAll(RegExp(r'/\\$'), '')}/puter-ai.html?backend=${Uri.encodeComponent(widget.backendUrl)}'));
+  }
+  @override Widget build(BuildContext context)=>Scaffold(
+    appBar:AppBar(title:const Text('Puter.js AI Validation')),
+    body:WebViewWidget(controller:controller),
+  );
 }
