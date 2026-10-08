@@ -204,27 +204,6 @@ async def ai_context(index: str = "NIFTY") -> dict:
         "read_only": True,
     }
 
-@router.get("/market/compare")
-async def market_compare(
-    symbol: str = "NIFTY",
-) -> dict:
-    key = symbol.upper().replace(" ", "")
-    out = {"symbol": key, "sources": {}, "validation": {"same_symbol": True}}
-    try:
-        out["sources"]["nse_mcp"] = await asyncio.to_thread(_official_nse_mcp.context, key)
-        out["sources"]["nse_mcp"]["delay_note"] = "Official NSE CM Market Live is described by NSE as running 1-3 minutes behind real-time; this is not guaranteed to be exactly 3 minutes."
-    except Exception as exc:
-        out["sources"]["nse_mcp"] = {"connected": False, "error": str(exc)[:300]}
-    src = state.engine._source
-    if src is not None and getattr(src, "jwt", None):
-        try:
-            tick = await src.get_quote(key, token=key)
-            out["sources"]["angel_one"] = tick.model_dump(mode="json") if hasattr(tick, "model_dump") else dict(tick)
-        except Exception as exc:
-            out["sources"]["angel_one"] = {"connected": False, "error": str(exc)[:300]}
-    out["policy"] = "Angel One is the primary live broker validation source; NSE MCP is delayed validation/reference data. No source alone can authorize a trade."
-    return out
-
 @router.get("/signal/validate")
 async def signal_validate(symbol: str = "NIFTY") -> dict:
     key = symbol.upper().replace(" ", "")
